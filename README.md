@@ -15,10 +15,12 @@ Open `index.html` in a browser. That's it — everything (including Three.js) is
 | WASD / arrows | Nudge the camera |
 | Bottom strip | Click a dot to set course; moons stack above their parent planet |
 | Strip background / `⤢ orbital plot` | Open the live 2D system map |
-| Esc | Close the system map |
+| `⬡ captain's log` | Open the survey-badge log |
+| Esc | Close the system map or log |
 
 ## What's inside
 
+- **Survey missions** — 12 clue-based objectives ("Find the moon that orbits its planet backwards…"). Work out the world, fly there, descend close and hold position to survey it. Each survey stamps a badge into the Captain's Log with a debrief fact; earned worlds get an amber ring in the selector strip. Every clue and debrief is real science, and progress is saved between visits.
 - **Procedural everything** — every surface is generated at load from seeded 3D value noise: Earth's continents and drifting clouds, Jupiter's bands and Great Red Spot, Saturn's rings with the Cassini division, Io's volcanoes, Europa's lineae, Haumea's tumbling egg shape (and its real ring), Charon orbiting Pluto as a binary pair.
 - **Real numbers** — the HUD shows live range-to-surface and velocity in kilometers scaled to each body's true radius, plus radius / day length / orbital distance data.
 - **Avionics-style cockpit HUD** — instrument tapes, a system-map strip scaled by log distance, and a full-screen orbital plot where planets crawl along their orbits at speeds proportional to their real periods.

@@ -65,6 +65,7 @@
   .mapdot .name{position:absolute;top:calc(100% - 8px);left:50%;transform:translateX(-50%);font-size:9px;letter-spacing:.2em;color:var(--dim);text-transform:uppercase;white-space:nowrap;opacity:0;transition:opacity .15s;font-family:var(--sans)}
   .mapdot:hover .name,.mapdot:focus-visible .name{opacity:1}
   .mapdot:focus-visible{outline:1px solid var(--amber);outline-offset:-6px}
+  .mapdot.surveyed .disc{box-shadow:0 0 0 2px rgba(0,0,0,.6),0 0 0 3px rgba(255,180,84,.45)} /* thin ring: surveyed */
   .mapdot[aria-pressed="true"] .disc{box-shadow:0 0 0 3px rgba(0,0,0,.6),0 0 0 4px var(--amber)}
   .mapdot[aria-pressed="true"] .name{opacity:1;color:var(--amber)}
   .mapdot.subdot{padding:5px}
@@ -92,6 +93,47 @@
   #orrery .sublabel{visibility:hidden;font-size:8.5px}
   #orrery .obody:hover>.sublabel,#orrery .obody:focus-visible>.sublabel,#orrery .obody.sel>.sublabel{visibility:visible}
 
+  /* mission card, top-right */
+  #mission{position:absolute;top:34px;right:44px;width:250px;background:var(--panel);border:1px solid var(--hairline);padding:14px 16px 12px;backdrop-filter:blur(3px);pointer-events:auto}
+  #mission .mhead{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px}
+  #mission h3{font-size:10px;letter-spacing:.22em;color:var(--dim);font-weight:600;text-transform:uppercase}
+  #mCount{font-family:var(--mono);font-size:10px;color:var(--amber);letter-spacing:.12em}
+  #mClue{font-size:12.5px;line-height:1.55;color:var(--ink)}
+  #mState{margin-top:9px;font-family:var(--mono);font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim)}
+  #mState.hot{color:var(--amber)}
+  #mBar{margin-top:6px;height:3px;background:rgba(139,147,163,.2)}
+  #mBar[hidden]{display:none}
+  #mFill{height:100%;width:0%;background:var(--amber)}
+  #mLogBtn{margin-top:10px;background:none;border:0;padding:0;font-family:var(--sans);font-size:9px;letter-spacing:.26em;color:var(--dim);text-transform:uppercase;cursor:pointer}
+  #mLogBtn:hover,#mLogBtn:focus-visible{color:var(--amber)}
+
+  /* survey-complete stamp */
+  #stamp{position:absolute;top:24%;left:50%;transform:translateX(-50%);text-align:center;opacity:0;transition:opacity .5s;pointer-events:none}
+  #stamp.on{opacity:1}
+  #stamp .box{display:inline-block;border:2px solid var(--amber);padding:14px 30px 16px;background:rgba(10,13,18,.72);backdrop-filter:blur(3px)}
+  #stamp .slabel{font-size:10px;letter-spacing:.3em;color:var(--amber);text-transform:uppercase;font-family:var(--mono)}
+  #stamp .sname{font-size:clamp(22px,3.4vw,34px);letter-spacing:.16em;color:var(--ink);text-transform:uppercase;margin-top:6px;font-weight:500}
+  #stamp .sfact{max-width:420px;margin:10px auto 0;font-size:12px;line-height:1.6;color:var(--chrome)}
+  #stamp.on .box{animation:stampin .45s cubic-bezier(.2,1.6,.4,1)}
+  @keyframes stampin{from{transform:scale(1.5);opacity:0}}
+
+  /* captain's log overlay */
+  #mlog{position:fixed;inset:0;background:rgba(4,6,10,.82);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;z-index:11}
+  #mlog[hidden]{display:none}
+  #mlogPanel{position:relative;width:min(760px,92vw);max-height:84vh;overflow:auto;background:var(--panel);border:1px solid var(--hairline);padding:26px 28px 22px}
+  #mlogTitle{font-size:10px;letter-spacing:.26em;color:var(--dim);text-transform:uppercase}
+  #mlogSub{font-family:var(--mono);font-size:11px;color:var(--amber);margin-top:6px;letter-spacing:.12em}
+  #mlogGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(215px,1fr));gap:10px;margin-top:16px}
+  .bcell{border:1px solid var(--hairline);padding:11px 12px}
+  .bcell .btop{display:flex;align-items:center;gap:8px}
+  .bcell .bdisc{width:9px;height:9px;border-radius:50%;background:#3a4150;flex:none}
+  .bcell .bname{font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--dim)}
+  .bcell .btext{margin-top:8px;font-size:11px;line-height:1.55;color:var(--chrome)}
+  .bcell.earned{border-color:rgba(255,180,84,.55)}
+  .bcell.earned .bname{color:var(--amber)}
+  #mlogClose{position:absolute;top:14px;right:14px;background:none;border:1px solid var(--hairline);color:var(--chrome);font-family:var(--mono);font-size:12px;width:26px;height:26px;cursor:pointer}
+  #mlogClose:hover,#mlogClose:focus-visible{color:var(--amber);border-color:var(--amber)}
+
   /* hint + scan overlay */
   #hint{position:absolute;bottom:34px;left:44px;font-family:var(--mono);font-size:10px;letter-spacing:.14em;color:var(--dim);text-transform:uppercase;transition:opacity 1.2s}
   #scan{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.55);opacity:0;transition:opacity .25s;pointer-events:none}
@@ -108,10 +150,12 @@
     #target{left:28px;top:24px}
     #instruments{left:28px}
     #hint{left:28px}
+    #mission{right:28px;top:24px;width:180px}
   }
   @media (prefers-reduced-motion: reduce){
     #scan .inner::after{animation:none;content:"..."}
     .mapdot .disc,.mapdot .name{transition:none}
+    #stamp.on .box{animation:none}
   }
 </style>
 </head>
@@ -152,6 +196,22 @@
     <div id="factline">—</div>
   </div>
 
+  <div id="mission">
+    <div class="mhead"><h3>Mission</h3><span id="mCount">0/12</span></div>
+    <div id="mClue">—</div>
+    <div id="mState">—</div>
+    <div id="mBar" hidden><div id="mFill"></div></div>
+    <button id="mLogBtn" aria-haspopup="dialog">⬡ captain's log</button>
+  </div>
+
+  <div id="stamp" aria-live="polite">
+    <div class="box">
+      <div class="slabel">Survey complete</div>
+      <div class="sname"></div>
+      <div class="sfact"></div>
+    </div>
+  </div>
+
   <div id="systemmap" role="group" aria-label="Select survey target" title="Open orbital plot">
     <div id="maptitle">Sol system · select target</div>
     <button id="mapexpand" aria-haspopup="dialog">⤢ orbital plot</button>
@@ -168,6 +228,15 @@
     <button id="orreryClose" aria-label="Close orbital plot">✕</button>
     <svg id="orrerySvg" viewBox="0 0 640 640" aria-hidden="false"></svg>
     <div id="orreryHint">select a body to set course &nbsp;·&nbsp; esc to close</div>
+  </div>
+</div>
+
+<div id="mlog" role="dialog" aria-label="Captain's log" hidden>
+  <div id="mlogPanel">
+    <div id="mlogTitle">Captain's log · survey badges</div>
+    <div id="mlogSub">0 of 12 worlds surveyed</div>
+    <button id="mlogClose" aria-label="Close log">✕</button>
+    <div id="mlogGrid"></div>
   </div>
 </div>
 
@@ -846,7 +915,7 @@ canvas.addEventListener("wheel",e=>{
 },{passive:false});
 const keys={};
 addEventListener("keydown",e=>{
-  if(e.key==="Escape") closeOrrery();
+  if(e.key==="Escape"){ closeOrrery(); closeLog(); }
   if(e.key.startsWith("Arrow")||e.key==="w"||e.key==="a"||e.key==="s"||e.key==="d"){ keys[e.key]=true; hideHint(); }
 });
 addEventListener("keyup",e=>{ delete keys[e.key]; });
@@ -879,6 +948,7 @@ async function setTarget(id){
   if(current&&built[current.id]) scene.remove(built[current.id].group);
   scene.add(bd.group);
   current=b;
+  surveyProg=0; $("mBar").hidden=true;
   sunBillboard.visible=(id!=="sun");
   sunLight.intensity=(id==="sun")?0:2.0;
   /* HUD */
@@ -1014,6 +1084,138 @@ $("systemmap").addEventListener("click",e=>{ if(e.target.closest(".mapdot")) ret
 $("orreryClose").addEventListener("click",closeOrrery);
 $("orrery").addEventListener("click",e=>{ if(e.target.id==="orrery") closeOrrery(); });
 
+/* ================= survey missions =================
+   Clue-driven scavenger hunt: read the clue, work out the world, fly there,
+   descend below SURVEY_DIST radii and hold for SURVEY_TIME seconds to earn the
+   badge. Every clue and debrief is a real fact. Progress persists in localStorage. */
+const MISSIONS=[
+  { target:"moon",      clue:"Fly to the only world beyond Earth where people have walked.",
+    debrief:"Twelve astronauts walked here between 1969 and 1972. Their footprints are still there — with no wind, they could last millions of years." },
+  { target:"venus",     clue:"Find the planet hiding under yellow clouds, hot enough to melt metal.",
+    debrief:"465 °C day and night — a runaway greenhouse effect. Lead would melt into a puddle on this ground." },
+  { target:"mars",      clue:"Find the rusty red planet with a volcano three times taller than Mount Everest.",
+    debrief:"Olympus Mons rises about 22 km. And on Mars you would weigh only about a third of what you weigh on Earth." },
+  { target:"jupiter",   clue:"Find the storm that is bigger than the whole Earth.",
+    debrief:"The Great Red Spot has raged for at least 190 years. Jupiter is so big that about 1,300 Earths would fit inside it." },
+  { target:"io",        clue:"Find the moon with more volcanoes than anywhere else — over 400 of them.",
+    debrief:"Jupiter squeezes and stretches Io like dough, keeping its insides molten. Its eruptions can be seen from Earth's telescopes." },
+  { target:"europa",    clue:"Find the moon hiding a huge ocean under a shell of cracked ice.",
+    debrief:"That dark ocean holds about twice the water of all Earth's seas — one of the best places to look for alien life." },
+  { target:"saturn",    clue:"Find the planet whose rings you could spot with a backyard telescope.",
+    debrief:"The rings stretch 280,000 km across, yet most are thinner than a football field is long — countless tumbling chunks of ice." },
+  { target:"enceladus", clue:"Find the tiny white moon that sprays its ocean into space.",
+    debrief:"Geysers at its south pole blast salty water through cracks in the ice. The Cassini spacecraft flew right through the spray." },
+  { target:"uranus",    clue:"Find the planet that spins lying on its side.",
+    debrief:"Something knocked it over long ago. Each pole now gets 42 years of daylight, then 42 years of night." },
+  { target:"triton",    clue:"Find the moon that orbits its planet backwards.",
+    debrief:"Neptune captured it — a stolen world from the Kuiper belt. Nitrogen geysers erupt through its pink ice." },
+  { target:"pluto",     clue:"Find the faraway world with a bright heart on its surface.",
+    debrief:"The heart is a glacier of frozen nitrogen bigger than Texas, slowly churning like a lava lamp." },
+  { target:"haumea",    clue:"Find the world shaped like an egg, spinning end-over-end every four hours.",
+    debrief:"The fastest-spinning large world we know — so fast it stretched itself into an egg. It even carries its own thin ring." },
+];
+const SURVEY_DIST=2.5, SURVEY_TIME=2.5;
+let surveyed=new Set();
+try{ surveyed=new Set(JSON.parse(localStorage.getItem("pe-surveyed")||"[]")); }catch(e){}
+const saveSurveyed=()=>{ try{ localStorage.setItem("pe-surveyed",JSON.stringify([...surveyed])); }catch(e){} };
+const missionByTarget=id=>MISSIONS.find(m=>m.target===id&&!surveyed.has(m.target));
+let surveyProg=0, mStateTxt="";
+
+function setMState(t,hot){
+  if(t===mStateTxt) return;
+  mStateTxt=t;
+  const el=$("mState"); el.textContent=t; el.classList.toggle("hot",!!hot);
+}
+function refreshMission(){
+  $("mCount").textContent=surveyed.size+"/"+MISSIONS.length;
+  const next=MISSIONS.find(m=>!surveyed.has(m.target));
+  if(!next){
+    $("mClue").textContent="Every world surveyed. The system is yours, Captain.";
+    setMState("fleet captain",true);
+    $("mBar").hidden=true;
+  }else{
+    $("mClue").textContent=next.clue;
+  }
+}
+/* called every frame while a body is on screen */
+function surveyTick(dt){
+  if(!current) return;
+  const m=missionByTarget(current.id);
+  if(m){
+    if(ctl.dist<SURVEY_DIST){
+      surveyProg+=dt/SURVEY_TIME;
+      $("mBar").hidden=false;
+      $("mFill").style.width=Math.min(100,surveyProg*100)+"%";
+      setMState("surveying — hold position",true);
+      if(surveyProg>=1) completeSurvey(m);
+    }else{
+      surveyProg=Math.max(0,surveyProg-dt*0.4);
+      $("mBar").hidden=surveyProg<=0;
+      if(surveyProg>0) $("mFill").style.width=(surveyProg*100)+"%";
+      setMState("fly closer to survey",true);
+    }
+  }else if(surveyed.size<MISSIONS.length){
+    setMState("set a course below",false);
+  }
+}
+let stampTimer=0;
+function completeSurvey(m){
+  surveyed.add(m.target); saveSurveyed();
+  surveyProg=0; $("mBar").hidden=true;
+  const b=BODIES.find(x=>x.id===m.target);
+  const done=surveyed.size===MISSIONS.length;
+  const st=$("stamp");
+  st.querySelector(".slabel").textContent=done?"Final survey — rank: Fleet Captain":"Survey complete";
+  st.querySelector(".sname").textContent=b.name;
+  st.querySelector(".sfact").textContent=m.debrief;
+  st.classList.add("on");
+  clearTimeout(stampTimer);
+  stampTimer=setTimeout(()=>st.classList.remove("on"),done?10000:7000);
+  chime(done?[[523,0,.22],[659,.15,.22],[784,.3,.22],[1047,.45,.55]]:[[659,0,.16],[880,.13,.34]]);
+  document.querySelectorAll(".mapdot").forEach(el=>{ if(el.dataset.id===m.target) el.classList.add("surveyed"); });
+  refreshMission();
+}
+/* soft two-note confirmation, four-note fanfare when the log is full */
+let AC=null;
+function chime(notes){
+  try{
+    AC=AC||new (window.AudioContext||window.webkitAudioContext)();
+    if(AC.state==="suspended") AC.resume();
+    const t=AC.currentTime;
+    for(const[f,off,dur] of notes){
+      const o=AC.createOscillator(), g=AC.createGain();
+      o.type="triangle"; o.frequency.value=f;
+      g.gain.setValueAtTime(0.0001,t+off);
+      g.gain.exponentialRampToValueAtTime(0.12,t+off+0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001,t+off+dur);
+      o.connect(g); g.connect(AC.destination);
+      o.start(t+off); o.stop(t+off+dur+0.05);
+    }
+  }catch(e){}
+}
+/* captain's log: earned badges show the world and its debrief; unearned show the clue */
+function refreshLog(){
+  $("mlogSub").textContent=surveyed.size+" of "+MISSIONS.length+" worlds surveyed";
+  const grid=$("mlogGrid"); grid.innerHTML="";
+  for(const m of MISSIONS){
+    const b=BODIES.find(x=>x.id===m.target);
+    const earned=surveyed.has(m.target);
+    const cell=document.createElement("div");
+    cell.className="bcell"+(earned?" earned":"");
+    cell.innerHTML=`<div class="btop"><span class="bdisc"${earned?` style="background:${b.dot.c}"`:""}></span>`+
+      `<span class="bname">${earned?b.name:"Unknown world"}</span></div>`+
+      `<div class="btext">${earned?m.debrief:m.clue}</div>`;
+    grid.appendChild(cell);
+  }
+}
+function openLog(){ refreshLog(); $("mlog").hidden=false; $("mlogClose").focus(); }
+function closeLog(){ $("mlog").hidden=true; }
+$("mLogBtn").addEventListener("click",openLog);
+$("mlogClose").addEventListener("click",closeLog);
+$("mlog").addEventListener("click",e=>{ if(e.target.id==="mlog") closeLog(); });
+document.querySelectorAll(".mapdot").forEach(el=>el.classList.toggle("surveyed",surveyed.has(el.dataset.id)));
+refreshMission();
+
 /* lens flare ghosts (DOM, screen blend) */
 const flares=[];
 {
@@ -1103,6 +1305,8 @@ function tick(now){
     const moved=camera.position.distanceTo(prevPos)*current.radiusKm/Math.max(dt,1e-4);
     speedSmooth+=(moved-speedSmooth)*Math.min(1,dt*6);
     $("speedVal").textContent=fmt(speedSmooth);
+
+    surveyTick(dt);
   }
   prevPos.copy(camera.position);
   updateFlares();
