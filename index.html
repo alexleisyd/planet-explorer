@@ -453,6 +453,304 @@ const SATURN_STORMS=[
   {lon:5.8, lat:Math.asin(-0.25), rx:0.045, ry:0.028, k:0.6},
 ];
 
+/* ================= Earth: the real map =================
+   Earth is the one world every player can check against memory, so its land
+   is not noise. These are hand-traced coastlines as flat [lon°,lat°] runs,
+   rasterised once into masks that BOTH the color pass and the height pass
+   sample, so shading and relief land on the same continents. Noise still does
+   all the fine work: a domain warp on the lookup frays the polygon edges into
+   bays, capes and islands, so nothing reads as a straight line from orbit. */
+const COASTS=[
+  /* Africa — Med coast west, down the Atlantic bulge, round the Cape, up the
+     Horn, and back along the Red Sea */
+  [10.2,37, 8,36.9, 3.1,36.8, -1,35.6, -5.4,35.9, -6.9,34, -9.6,30.4, -11,28, -13.2,24,
+   -16,21, -16.5,18, -17.5,14.7, -16.5,12.5, -15,11, -13.5,9.5, -11.5,7.5, -9,5.5, -5,4.5,
+   -1,5, 1,5.8, 3.4,6.4, 5.4,4.3, 8.3,4.3, 9.3,4, 9.7,2, 9.4,0.3, 11.5,-3.7, 12.4,-6,
+   13,-8.8, 13.8,-12.6, 11.8,-17.2, 14.5,-22.5, 15.5,-26.5, 17.5,-29.5, 18.4,-34.3,
+   20,-34.8, 25.5,-34, 27.9,-33, 31,-29.9, 32.9,-26, 35.5,-23.5, 34.9,-19.8, 36.9,-17.9,
+   40.6,-15.9, 40.5,-12.5, 39.3,-6.8, 40.1,-3.2, 42.5,-0.4, 45.4,2, 48.5,5, 51.4,10.4,
+   51,11.8, 48,11.5, 45,11, 43.3,11.6, 42.5,14, 39,18, 37.2,21, 35.5,24, 34.5,27.5,
+   32.6,29.9, 32.2,31.2, 29.9,31.2, 25,31.6, 19,30.3, 15.1,32.4, 11,33.5, 10.5,35.5],
+  /* Eurasia — Iberia north to Scandinavia, the Siberian arctic, down the Pacific
+     rim, round India and Arabia, then home along the Med. Narrow straits (the
+     Bosphorus, Suez) are traced out and back; they are sub-pixel from orbit. */
+  [-5.6,36, -6.9,37.2, -8.9,37, -9.5,38.7, -8.9,41.7, -8.9,43.5, -4,43.5, -1.8,43.4,
+   -1.2,46.2, -4.8,48.4, -1.6,49.7, 2,51, 4.3,52.4, 8.2,53.6, 8.6,55.4, 10.6,57.7,
+   12.6,55.7, 14,54.2, 18.6,54.5, 21,55.3, 23.5,56.9, 24.5,59.4, 30.3,60, 25,60.2,
+   21.5,63.2, 24.5,65.8, 21.5,63.5, 18.5,60.7, 17.9,59.3, 16.5,56.7, 13,55.4, 11.9,57.7,
+   10.7,59.5, 7,58, 5.7,58.9, 5,61, 8,63.5, 13,66.5, 16.5,68.5, 20,70, 25.8,71.2, 31,70,
+   35,69, 44,68, 50,68.5, 58,68.8, 60,70, 69,73, 73.5,71.5, 76,72.5, 79,72, 83,73.5,
+   91,75.5, 99,77.5, 104.3,77.7, 110,74.5, 113.5,73.5, 126,73.5, 130,71.5, 136,71.5,
+   140,72.8, 146,72.3, 152,70.8, 159,70, 170,69.8, 180,68.5, 188,66, 190.3,65.6, 186,64,
+   179,62, 175,62, 170,60.5, 163,57.5, 162.5,54.5, 159.9,51.9, 156.7,50.9, 155.5,55,
+   158,57.5, 155,59.3, 148,59.4, 142.5,58.5, 140.7,53, 140.3,49, 137.5,46, 133.5,44,
+   131.9,43.1, 129.7,42.3, 129.4,37, 129.3,35.1, 126.5,34.3, 126.4,37.5, 125.5,39.7,
+   124.4,40, 121.2,38.9, 118,39.2, 119,37.4, 122.5,37.4, 120,36, 119.5,34.5, 121.9,31.4,
+   121.5,30.5, 122,29.5, 119.6,26, 118.1,24.5, 116.7,23.3, 113.5,22.2, 110.5,21.2,
+   108.5,21.6, 106.7,20.7, 108.2,16.1, 109.3,13, 109.2,11.5, 106.7,10.3, 104.8,9.6,
+   103.5,10.5, 102.5,12, 100.9,12.6, 100.5,13.5, 99.9,9, 102.2,6.1, 103.5,4.5, 104,1.4,
+   100.6,3, 100.3,5.5, 98.5,8, 98.3,10.5, 97.5,16, 94.2,19.5, 91.8,22.3, 90,21.8,
+   88,21.6, 86.9,20.7, 83.3,17.7, 80.3,15.9, 80.2,13.1, 79.8,10.3, 77.5,8.1, 76.2,9.9,
+   74.8,13, 73.8,15.5, 72.8,19.1, 72.6,21.5, 69.8,22.5, 68,23.8, 67,24.8, 64,25.2,
+   61.5,25.1, 57.8,25.6, 56.4,26.6, 53.5,27, 50,29.5, 48.5,29.8, 50,26.5, 51.5,25.3,
+   54,24.3, 56.3,25.6, 58.6,23.6, 59.8,22.5, 57.5,19, 54.5,17, 52.2,15.6, 48,14, 45,12.8,
+   43.4,12.6, 42.6,15, 39.2,21.5, 37.5,24.5, 36,27.5, 34.8,29.4, 34.3,27.7, 32.6,29.9,
+   34.3,31.3, 35.5,33.9, 35.9,35.9, 36.2,36.6, 34,36.3, 31,36.2, 29,36.5, 27.3,37,
+   26.4,38.4, 26.2,40.05, 26.5,40.4, 27.5,40.4, 29.05,40.7, 29.1,41.05, 31,41.2,
+   36.2,41.7, 41,41.5, 39.7,43.6, 37.5,45, 36.5,45.3, 33.5,44.4, 33.5,46, 31.5,46.6,
+   29.7,45.3, 28,43.4, 27.5,42.5, 28.9,41.1, 27.5,40.9, 26.7,40.6, 26.1,40.4, 25,40.9,
+   24,40.6, 22.9,40.6, 23.3,39.5, 23.7,37.9, 23,36.7, 22,36.5, 21.3,37.5, 21.1,38.3,
+   20.5,39.5, 19.4,40.5, 19,42, 16.5,43, 15.2,44.3, 14.5,45.3, 13.6,45.8, 12.5,45.5,
+   12.6,44.1, 13.5,43.6, 16,41.9, 17,41.1, 18.5,40.1, 17.3,40.4, 16.5,39.8, 17.1,39.1,
+   15.9,38.2, 15,39.9, 14.8,40.6, 14.2,40.8, 13.5,41.2, 12.2,41.7, 10.3,43.5, 9.8,44.1,
+   8.9,44.4, 7.3,43.7, 5.3,43.3, 3,42.5, 2.2,41.4, -0.3,39.5, -1,37.6, -2.5,36.8, -4.4,36.7],
+  /* North & Central America — Panama up the Pacific, round Alaska and the
+     Canadian arctic, down through Hudson Bay and the eastern seaboard, then
+     the Gulf and the Yucatán */
+  [-77.4,8.6, -79.5,9, -83,9.5, -84.7,9.9, -87,12.8, -89.5,13.5, -92,15, -95,15.9,
+   -97,16, -99.9,16.8, -103.5,18.5, -105.7,20.5, -105.5,22.5, -106,23.5, -108.9,25.7,
+   -110.9,27.9, -113,31, -114.8,31.7, -113.5,30, -112,28, -111,26, -110,24.2, -109.9,22.9,
+   -112.2,26.5, -114.5,27.8, -115.8,29.5, -117.1,32.5, -120.5,34.5, -122,36.6, -122.5,37.8,
+   -124.2,40.4, -124,43.5, -124,46.3, -124.7,48.4, -123.5,49.3, -127,52.5, -130,54.5,
+   -133,56.5, -136,58.5, -140,60, -146,60.5, -150,59.5, -152,58.5, -154,57.5, -158,56,
+   -162.5,54.8, -165,54.5, -162,58, -161.8,60.5, -165,60.5, -164.5,63, -160.5,64.5,
+   -168.1,65.7, -164,66.5, -161.5,68, -166.8,68.3, -159,70.6, -156.5,71.4, -148,70.3,
+   -141,69.6, -134.5,69.5, -130,70, -124.5,69.5, -115,68, -110,68, -105,68.5, -98,68,
+   -95,67, -93,66.5, -92,63.5, -93.5,61, -94.5,58.8, -92.5,57, -88,56, -85.5,55.3,
+   -82.5,55.2, -82,54, -80,52.5, -79.5,51.5, -79,53, -78.5,55, -77.5,57, -77.5,59.5,
+   -78,61.5, -77.9,62.4, -74,62.5, -70,61.6, -66,61, -68,58.5, -66,58.5, -65,59.8,
+   -64,60.5, -63,58.5, -61.5,56.5, -60,54, -57,53.5, -55.7,52, -56.5,51, -58.5,50,
+   -64,49.5, -68,48.5, -70,47, -67,48.5, -64.2,48.9, -65.5,47.8, -64.8,46.8, -64,45.9,
+   -63.5,45.5, -61,45.6, -60,46.2, -62.5,44.5, -65.5,43.5, -66.5,45, -67,44.8, -70,43,
+   -70.7,42.3, -70,41.6, -71.5,41.3, -74,40.5, -74.9,38.9, -75.5,37, -75.5,35.2, -78,33.9,
+   -80.9,32, -81.5,30.5, -80.1,26.5, -80.2,25.2, -81.5,25.2, -82.5,27.5, -84,30, -88,30.3,
+   -89.2,29.1, -93.5,29.6, -95.3,29, -97.2,27.5, -97.5,25.9, -97.7,22.3, -96,19.2,
+   -94.5,18.2, -92,18.6, -90.5,19.9, -90.3,21.2, -87,21.6, -86.8,20.5, -88,18.5,
+   -88.5,15.8, -83.2,15, -83.5,12.5, -82.5,9.5, -79.5,9.5],
+  /* South America */
+  [-77.9,7.5, -77.1,3.9, -78.9,1.5, -80.9,-2.2, -80,-3, -81.3,-6.1, -79,-8.1, -77,-12,
+   -76,-14.5, -74,-16, -71.5,-17.5, -70.4,-18.5, -70.4,-23.6, -71,-30, -71.6,-33,
+   -73,-36.8, -73.5,-41.5, -74.5,-45, -75.5,-48.5, -74.5,-52.5, -71,-54, -68,-54.9,
+   -66.5,-55, -65,-54.6, -68,-52.5, -68.5,-50.5, -67.5,-46, -65,-42.5, -62.5,-40,
+   -57.5,-38, -56.7,-36.4, -58.5,-34.5, -56,-34.9, -53.5,-33.7, -51,-30, -48.5,-27.5,
+   -48,-25.5, -46.4,-24, -43.2,-23, -41,-22, -39,-18, -39,-15, -38.5,-13, -37,-11,
+   -35.2,-9, -34.9,-8.1, -35.2,-5.8, -38.5,-3.7, -41.5,-2.8, -44.3,-2.5, -48.5,-0.7,
+   -50.5,0, -51.5,4, -53,5.5, -56,5.8, -58,6.8, -60,8.5, -62.5,10.5, -64,10.6, -66,10.6,
+   -68.5,11, -70.2,11.8, -71.3,12.4, -72.5,11.5, -74.8,11, -76.5,9, -77.4,8.6],
+  /* Australia */
+  [142.5,-10.7, 141.5,-13, 140,-17.5, 137,-16, 136.7,-12, 135,-12, 132.5,-11.2,
+   130.8,-12.4, 129,-14.8, 127,-14, 125,-14.5, 123.5,-16.5, 121,-19.5, 118,-20.3,
+   116,-20.6, 114,-21.8, 113.2,-22.5, 114,-26, 115,-30, 115.7,-32, 115,-34.4, 117.9,-35,
+   123,-33.9, 126,-32.3, 129,-31.7, 132,-32, 134,-32.6, 135,-34.7, 137.5,-35, 138.5,-35.6,
+   140,-38, 143,-38.8, 145,-38.5, 146.5,-38.9, 149.9,-37.5, 150.5,-35, 151.3,-33.9,
+   153,-31, 153.5,-28, 153,-25, 149.5,-22.5, 147.5,-19.5, 145.8,-16.9, 145.5,-15,
+   143.5,-12.5],
+  /* Antarctica — the coast all the way round, closed off at the pole */
+  [-180,-78, -170,-77, -160,-77, -150,-76, -140,-74.5, -130,-74, -120,-73.5, -110,-73.5,
+   -100,-72.5, -90,-72, -80,-72, -70,-72.5, -60,-75, -50,-78, -40,-77.5, -30,-77, -20,-75,
+   -10,-71.5, 0,-70, 10,-70, 20,-70, 30,-69, 40,-68, 50,-67, 60,-67, 70,-68.5, 80,-67,
+   90,-66.5, 100,-66, 110,-66.5, 120,-66.5, 130,-66, 140,-66.5, 150,-70, 160,-70.5,
+   165,-72, 170,-73, 175,-78, 180,-78, 180,-90, -180,-90],
+  [-57,-63.5, -60,-64.5, -63,-66.5, -66,-68, -70,-70, -73,-72, -76,-73, -72,-74.5,
+   -66,-72.5, -62,-69, -58.5,-65.5],                                          // Antarctic Peninsula
+  /* Greenland and the big arctic islands */
+  [-45,59.8, -42,61.5, -40,64, -38,65.5, -35,68, -31,68.5, -28,70.5, -22,70.5, -21,72,
+   -22,74, -19,76.5, -17,80, -12,81.5, -20,83, -32,83.6, -45,82.5, -55,82, -60,81.5,
+   -65,80, -68,78, -73,76.5, -68,75.5, -58,75, -56,72, -53.5,69.5, -50.5,68.5, -53,66.5,
+   -51,64, -48,61],
+  [-64.5,61.5, -70,62.5, -77,64, -81,68, -85,70, -80,73.5, -74,73, -68,70, -63,66.5],  // Baffin
+  [-85,76.5, -75,76.5, -68,79, -70,82.5, -78,82.8, -87,80],                            // Ellesmere
+  [-117,69, -105,68.8, -102,69.5, -105,72, -110,73, -115,73.5, -118,71.5],             // Victoria
+  [-59.4,47.6, -55.5,46.6, -52.7,47.5, -55,49.5, -56,51.5, -58.5,50],                  // Newfoundland
+  [-22.7,63.9, -18,63.4, -14.5,64.3, -13.6,65.5, -16,66.5, -20,66.3, -22.5,65.5, -24.5,65],// Iceland
+  [10.5,80, 20,80, 22,78.5, 17,77, 13,77.5],                                           // Svalbard
+  [52.5,71, 56,71.5, 62,74.5, 68.5,76.7, 69,77, 62,75.5, 55.5,73.5, 51.5,71.5],        // Novaya Zemlya
+  /* British Isles */
+  [-5.7,50.1, -3,51.2, -5.3,51.7, -4.6,53.3, -3.1,54.1, -4.8,54.6, -5.6,56.5, -5.8,58.3,
+   -3,58.6, -2.1,57.7, -2.8,56, -1.4,54.9, 0.1,53.5, 1.7,52.5, 1,51.4, 0.7,50.8,
+   -1.9,50.7, -3.5,50.6],
+  [-6,52.2, -10.4,51.8, -9.9,53.4, -10.1,54.3, -8.5,55.2, -6,55.2, -5.5,54.3, -6.2,53.3],
+  /* Japan, Taiwan, the Philippines, Sakhalin */
+  [130.9,34.4, 133,34.3, 135,34.6, 136.9,34.7, 138.9,34.6, 140,35, 140.9,35.7, 140.9,37,
+   141.4,38.3, 141.5,40.5, 141,41.4, 140.2,41.5, 139.5,40.5, 140,39.5, 139.2,38.5,
+   138.2,37.2, 136.7,37.4, 137.2,36.7, 135.2,35.7, 132.5,35.5],
+  [140,41.8, 141.5,42.6, 143,42, 145.4,43.3, 145,44.3, 142.5,45.5, 141.6,45.4, 140.5,43.3],
+  [130.9,33.9, 131.8,33.6, 131.5,32.6, 130.6,31, 130.2,31.3, 129.6,32.6, 130.2,33.5],
+  [132,33.5, 134.6,34.2, 134.2,33.5, 132.5,32.8],
+  [121,25.3, 122,25, 121,22.6, 120.1,22.6, 120.1,24],
+  [120.5,18.5, 122.2,18.5, 121.6,16, 122,14, 121,13.8, 120.6,14.5, 119.8,16.4],
+  [124,9.5, 126.5,9, 126.2,6.9, 125.4,5.6, 124,6.5, 122,7.3, 123,8.5],
+  [142,54.4, 143.4,53.3, 143,49.5, 142.1,46, 141.8,45.9, 141.7,48.5, 141.6,51.7],
+  /* the Indonesian arc and New Guinea */
+  [95.3,5.6, 97.5,5.2, 99,3.5, 101,2.3, 103.5,0, 104.5,-2, 105.5,-3.5, 105.9,-5.9,
+   104.5,-5.6, 102,-4, 100,-2.5, 98.5,-1, 97,1.5],
+  [105.2,-6, 107,-5.9, 110.5,-6.5, 112.6,-6.9, 114.4,-8.4, 113,-8.3, 110,-8.2, 107.5,-7.7,
+   105.2,-6.9],
+  [108.9,1.5, 110,0, 110.5,-1, 111.5,-3, 113.5,-3.5, 114.5,-4, 116.5,-3.5, 117.5,-0.5,
+   119,1, 117.5,2.5, 117,4.2, 116.8,7, 115,5.5, 113,4.5, 110.5,3],
+  [119.4,-5.5, 119.8,-3, 121,-1, 124.5,1.3, 125.2,1.6, 123.2,-0.8, 123.5,-1.6, 122.5,-3,
+   121,-4, 120.5,-2.8, 120.2,-4.5],
+  [130.9,-1.5, 134,-1, 137,-1.7, 141,-2.6, 144.5,-3.8, 146.5,-5.5, 147.8,-6.5, 149,-9,
+   147,-8, 143,-8.5, 140,-8.3, 137.5,-8.4, 135,-4.5, 133,-4, 132,-2.7],
+  /* the Caribbean, Madagascar, Sri Lanka, New Zealand, Tasmania */
+  [-84.9,21.9, -81,23.2, -78.5,22.5, -75.5,21, -74.1,20.1, -77,19.9, -80,21.8],
+  [-74.5,18.5, -71.7,19.9, -69,19.3, -68.3,18.6, -71,18.2, -73.5,18.2],
+  [49.4,-12.3, 50.5,-15.5, 49.9,-17, 48.5,-20.5, 47,-24.9, 45.2,-25.6, 43.9,-23.5,
+   43.2,-21.5, 44.5,-19, 46.3,-15.7, 48.3,-13.3],
+  [79.7,9, 81.2,8.5, 81.9,7, 81.3,6, 80,6, 79.7,8],
+  [172.7,-34.4, 174.8,-36.4, 176.5,-37.6, 178.5,-37.7, 177.9,-39.3, 176.5,-40.5,
+   175.3,-41.6, 174.3,-40.5, 174,-39, 173,-37],
+  [172.7,-40.5, 174.3,-41.5, 173,-43, 172.8,-43.6, 171,-45, 170.6,-45.9, 168.5,-46.6,
+   166.5,-45.9, 168,-44, 170.5,-42.5, 172,-41],
+  [145,-40.7, 148.3,-40.8, 148,-42.5, 146.5,-43.6, 145.3,-42.5],
+];
+/* enclosed water the coast trace draws straight past — punched back out */
+const INLAND_SEAS=[
+  [47.5,44.5, 48.7,46.5, 51.2,47.1, 53.2,46.2, 52.5,44.5, 51,43.5, 52,41.5, 53.9,39.5,
+   53.5,37.5, 52.5,36.9, 50,36.6, 48.9,38.5, 48.5,41],                        // Caspian
+  [-92.1,46.7, -87,46.8, -84.5,46.5, -84.6,47, -87.5,48, -90,48.2],           // Superior
+  [-87.6,41.7, -85.5,42.1, -85,44, -85.5,45.8, -87,45.8, -88,44.8, -87.9,43], // Michigan
+  [-84.5,43.5, -82.4,43, -81.7,44.6, -82.3,45.9, -84,46.2, -84.8,45.7],       // Huron
+  [-83.4,41.9, -81,42.1, -78.9,42.9, -80.5,43, -83,42.4],                     // Erie
+  [-79.8,43.3, -76.5,43.9, -76.2,44.3, -79.2,44],                             // Ontario
+];
+/* permanent ice sheets (the polar caps themselves come from latitude) */
+const ICE_SHEETS=[
+  [-45,59.8, -40,64, -35,68, -28,70.5, -21,72, -19,76.5, -17,80, -20,83, -32,83.6,
+   -45,82.5, -55,82, -65,80, -70,77, -60,74, -56,72, -52,68, -50,66, -48,61],  // Greenland
+  [-180,-76, -140,-73.5, -100,-72, -72,-71.5, -62,-67, -57,-63.5, -66,-70, -55,-77,
+   -30,-76, -10,-71, 20,-70, 50,-67, 80,-67, 110,-66.5, 140,-66.5, 165,-71, 178,-77,
+   180,-90, -180,-90],                                                         // Antarctica
+];
+/* mountain spines, stroked as polylines: [width°, lon,lat, lon,lat, …] */
+const RANGES=[
+  [3,  -76.5,8, -75.5,3, -78.5,-2, -79,-7, -76.5,-12, -71,-18, -69,-24, -70,-30,
+       -70.5,-36, -71.5,-42, -72.5,-48, -73,-53],                              // Andes
+  [4,  -148,63, -140,60, -132,57, -125,53, -119,49, -115,44, -111,40, -108,36,
+       -106,32, -105,27, -103,21],                                             // Rockies → Sierra Madre
+  [2,  -122,48, -121,43, -119.5,38, -117,34],                                  // Cascades / Sierra Nevada
+  [2,  -160,68, -150,68.5, -142,68.5],                                         // Brooks Range
+  [2.5,-84,34, -80,37, -76,40, -72,44, -69,46],                                // Appalachians
+  [3,  -49,-17, -44,-20, -41,-21],                                             // Brazilian highlands
+  [2.5,-64,4, -60,4.5, -56,3],                                                 // Guiana highlands
+  [2,  -9,31, -4,32, 2,35, 8,36.5],                                            // Atlas
+  [3,  36,7, 39,11, 40,14],                                                    // Ethiopian highlands
+  [2,  30,-2, 34,-3, 37,-6],                                                   // East African rift
+  [2,  28,-30, 30,-27, 31,-24],                                                // Drakensberg
+  [2,  6,45.3, 9,46.5, 13,47, 16,47.3],                                        // Alps
+  [1.8,19,49, 23,48, 25,45.5],                                                 // Carpathians
+  [1.6,-6,42.5, 0,42.7, 2,42.5],                                               // Pyrenees
+  [2.2,6,58.5, 9,62, 14,66, 19,69],                                            // Scandes
+  [2,  59,68, 59,62, 58,56, 58,51],                                            // Urals
+  [1.6,38,44, 43,43, 47,40],                                                   // Caucasus
+  [2.5,46,37, 50,33, 55,29],                                                   // Zagros
+  [2,  30,38.5, 38,39.5, 45,38, 52,36.5],                                      // Anatolia / Elburz
+  [3,  66,35, 71,37, 76,41, 82,43, 88,47, 94,50],                              // Hindu Kush → Tien Shan
+  [5,  74,35, 79,33, 84,30.5, 88,28.5, 93,29, 97,31],                          // Himalaya
+  [7,  80,33, 88,32, 94,32],                                                   // Tibetan plateau
+  [2.5,88,49, 95,51, 102,52, 108,52],                                          // Altai / Sayan
+  [1.5,73,18, 75,14, 77,9],                                                    // Western Ghats
+  [3,  128,64, 136,63, 145,62, 155,62],                                        // Verkhoyansk / Kolyma
+  [1.6,158,53, 160,56, 161,58],                                                // Kamchatka
+  [1.4,131,33, 136,35, 139,37, 141,40],                                        // Japan
+  [1.4,96,4, 100,0, 103,-4, 105,-5.5],                                         // Barisan (Sumatra)
+  [1.2,106,-7, 110,-7.5, 114,-8.2],                                            // Java
+  [2,  135,-4, 140,-5, 145,-6.5],                                              // New Guinea highlands
+  [2,  145,-17, 148,-21, 150,-26, 151,-30, 149,-35, 147,-37],                  // Great Dividing Range
+  [1.4,167,-45, 170,-43.5, 173,-41.5],                                         // Southern Alps
+];
+/* rasterise the map once into byte fields the surface functions can sample */
+const GEO=(()=>{
+  const W=1024, H=512;                       // 0.35° per cell; noise supplies the rest
+  const X=lon=>(lon+180)/360*W, Y=lat=>(90-lat)/180*H;
+  let fields=null;
+  function blank(){
+    const cv=document.createElement("canvas"); cv.width=W; cv.height=H;
+    const ctx=cv.getContext("2d"); ctx.fillStyle="#000"; ctx.fillRect(0,0,W,H);
+    return cv;
+  }
+  /* every shape is drawn three times, shifted a full turn either way, so the
+     ones straddling ±180° (Eurasia, Antarctica) land on both edges */
+  const OFFS=[-W,0,W];
+  function fillShapes(ctx,shapes){
+    ctx.fillStyle="#fff";
+    for(const s of shapes) for(const off of OFFS){
+      ctx.beginPath();
+      for(let i=0;i<s.length;i+=2){
+        const x=X(s[i])+off, y=Y(s[i+1]);
+        i?ctx.lineTo(x,y):ctx.moveTo(x,y);
+      }
+      ctx.closePath(); ctx.fill();
+    }
+  }
+  function strokeShapes(ctx,lines){
+    ctx.strokeStyle="#fff"; ctx.lineCap="round"; ctx.lineJoin="round";
+    for(const l of lines){
+      ctx.lineWidth=l[0]/180*H;
+      for(const off of OFFS){
+        ctx.beginPath();
+        for(let i=1;i<l.length;i+=2){
+          const x=X(l[i])+off, y=Y(l[i+1]);
+          i>1?ctx.lineTo(x,y):ctx.moveTo(x,y);
+        }
+        ctx.stroke();
+      }
+    }
+  }
+  /* down/up-scale roundtrip: a cheap wide blur. On the land mask it becomes
+     "how deep inside a landmass are we" — the continentality that dries out
+     the Sahara and the Gobi, and the shelf shading offshore. */
+  function soften(cv,f){
+    const t=document.createElement("canvas"); t.width=Math.ceil(W/f); t.height=Math.ceil(H/f);
+    t.getContext("2d").drawImage(cv,0,0,t.width,t.height);
+    const o=document.createElement("canvas"); o.width=W; o.height=H;
+    o.getContext("2d").drawImage(t,0,0,W,H);
+    return o;
+  }
+  function read(cv){
+    const d=cv.getContext("2d").getImageData(0,0,W,H).data;
+    const a=new Uint8Array(W*H);
+    for(let i=0,j=0;i<a.length;i++,j+=4) a[i]=d[j];
+    return a;
+  }
+  function build(){
+    const landCv=blank(), lc=landCv.getContext("2d");
+    fillShapes(lc,COASTS);
+    lc.globalCompositeOperation="destination-out";
+    fillShapes(lc,INLAND_SEAS);
+    lc.globalCompositeOperation="destination-over";      // punched holes back to sea
+    lc.fillStyle="#000"; lc.fillRect(0,0,W,H);
+    lc.globalCompositeOperation="source-over";
+    const rangeCv=blank(); strokeShapes(rangeCv.getContext("2d"),RANGES);
+    const iceCv=blank(); fillShapes(iceCv.getContext("2d"),ICE_SHEETS);
+    return { land:read(landCv), cont:read(soften(landCv,16)),
+             range:read(soften(rangeCv,2)), ice:read(soften(iceCv,3)) };
+  }
+  /* bilinear, wrapping in longitude and clamping at the poles */
+  function sample(a,u,v){
+    u-=Math.floor(u);
+    const x=u*W-0.5, y=clamp(v*H-0.5,0,H-1);
+    const x0=Math.floor(x), y0=Math.floor(y), fx=x-x0, fy=y-y0;
+    const xa=((x0%W)+W)%W, xb=(xa+1)%W;
+    const r0=clamp(y0,0,H-1)*W, r1=Math.min(clamp(y0,0,H-1)+1,H-1)*W;
+    return ((a[r0+xa]*(1-fx)+a[r0+xb]*fx)*(1-fy)+(a[r1+xa]*(1-fx)+a[r1+xb]*fx)*fy)/255;
+  }
+  return { get:()=>fields||(fields=build()), sample };
+})();
+/* the lookup both Earth passes share: a two-scale domain warp on the sample
+   point, so the traced outline never shows as a polygon edge. Amplitudes are
+   in texture uv — ~1.4° of coarse wander plus ~0.5° of fine fray. */
+function earthGeo(px,py,pz,lat,lon){
+  const g=GEO.get();
+  const wu=(fbm(px*3.4+19,py*3.4+19,pz*3.4+19,3)-0.5)*0.008
+          +(fbm(px*11+5,py*11+5,pz*11+5,3)-0.5)*0.003;
+  const wv=(fbm(px*3.4+71,py*3.4+71,pz*3.4+71,3)-0.5)*0.016
+          +(fbm(px*11+43,py*11+43,pz*11+43,3)-0.5)*0.006;
+  const u=lon/(Math.PI*2)+wu, v=lat/Math.PI+0.5+wv;
+  return { land:GEO.sample(g.land,u,v), cont:GEO.sample(g.cont,u,v),
+           range:GEO.sample(g.range,u,v), ice:GEO.sample(g.ice,u,v) };
+}
+
 const SURFACES = {
   sun(px,py,pz,lat){
     const g=fbm(px*7,py*7,pz*7,5), f=fbm(px*18,py*18,pz*18,3);
@@ -476,29 +774,63 @@ const SURFACES = {
     const band=0.5+0.5*Math.sin(lat*7+(s-0.5)*4);
     return mixv(mixv([186,136,70],[246,228,182],t),[226,196,140],band*0.3);
   },
-  earth(px,py,pz,lat){
-    const hgt=fbm(px*2.4+7,py*2.4+7,pz*2.4+7,6);
-    const detail=fbm(px*7+3,py*7+3,pz*7+3,4);
-    const iciness=sstep(1.08,1.35,Math.abs(lat))+sstep(0.72,0.9,hgt);
+  earth(px,py,pz,lat,lon){
+    const g=earthGeo(px,py,pz,lat,lon);
+    const latd=-lat*180/Math.PI, alat=Math.abs(latd);   // lat runs negative-north
     let col;
-    if(hgt<0.505){
-      const deep=sstep(0.28,0.505,hgt);
-      col=mixv([6,18,48],[22,72,128],deep);
-      if(hgt>0.475) col=mixv(col,[36,110,140],sstep(0.475,0.505,hgt)*0.7);
+    if(g.land<0.5){
+      /* abyssal plain → ocean basin → the pale shelf ringing every coast */
+      const shelf=clamp(sstep(0.02,0.5,g.land)*0.85+sstep(0.3,0.8,g.cont)*0.4,0,1);
+      col=mixv([9,30,68],[24,74,124],sstep(0.04,0.55,g.cont));
+      col=mixv(col,[36,116,150],shelf);
+      /* sea ice: the Arctic pack, and the Southern Ocean's wider skirt */
+      const ripple=fbm(px*6+61,py*6+61,pz*6+61,3)-0.5;
+      const ice=clamp(sstep(72,80,latd+ripple*7)+sstep(-62,-70,latd+ripple*7),0,1);
+      col=mixv(col,[226,236,244],ice);
     }else{
-      const e=sstep(0.505,0.72,hgt);
-      const dry=sstep(0.35,0.72,detail)*(1-sstep(0.5,1.0,Math.abs(lat)));
-      col=mixv([38,84,44],[54,66,38],e);
-      col=mixv(col,[168,142,92],dry*0.85);
-      col=mixv(col,[124,116,104],sstep(0.66,0.78,hgt));
+      const n=fbm(px*9+3,py*9+3,pz*9+3,4);              // ground texture
+      const m=fbm(px*2.2+37,py*2.2+37,pz*2.2+37,4);     // wet/dry patches
+      /* climate: wet on the equator and in the westerlies, dry under the
+         subtropical highs (Sahara, Arabia, Kalahari, outback) and drier again
+         deep inside a continent — but only while it is warm enough to matter,
+         so Siberia stays taiga while the Gobi at the same remove goes to sand */
+      const cold=sstep(48,72,alat);
+      const arid=clamp(sstep(9,25,alat)*(1-sstep(33,44,alat))*1.15*(0.55+0.9*g.cont)
+                       +(g.cont-0.5)*0.9*(1-sstep(42,58,alat))+(m-0.5)*0.9,0,1);
+      col=mixv([48,96,50],[62,86,46],n);
+      col=mixv(col,[126,130,76],sstep(0.15,0.55,arid));       // forest → steppe
+      col=mixv(col,[198,170,112],sstep(0.55,0.88,arid));      // steppe → sand
+      col=mixv(col,[30,72,36],(1-sstep(3,17,alat))*(1-arid)*0.85); // equatorial rainforest
+      col=mixv(col,[54,78,56],cold*0.6);                      // boreal forest
+      col=mixv(col,[124,118,94],sstep(0.78,1,cold));          // tundra
+      /* ranges: bare rock along the spine, snow only in patches on the crests
+         — the snowline climbs toward the equator, so the Andes keep a thread
+         of white where the Alps are buried in it */
+      const crest=g.range*(0.35+0.75*fbm(px*9+83,py*9+83,pz*9+83,3)
+                               +0.55*fbm(px*22+29,py*22+29,pz*22+29,3));
+      col=mixv(col,[118,110,100],sstep(0.3,0.75,crest)*0.6);
+      col=mixv(col,[236,240,246],sstep(0.85,1.2,crest)*clamp((alat-14)/30,0.06,0.6));
+      /* ice sheets, then the caps themselves — nothing on Antarctica escapes
+         the ice, so the whole far south goes white whatever the mask says */
+      const edge=(fbm(px*7+91,py*7+91,pz*7+91,3)-0.5)*6;
+      const cap=clamp(sstep(0.3,0.55,g.ice)+sstep(74,80,alat+edge)+sstep(-63,-70,latd+edge),0,1);
+      col=mixv(col,[238,242,248],cap);
     }
-    col=mixv(col,[235,240,245],clamp(iciness,0,1));
     return col;
   },
   earthClouds(px,py,pz){
-    const c=fbm(px*3.1+51,py*3.1+51,pz*3.1+51,5);
-    const w=fbm(px*8+2,py*8+2,pz*8+2,3);
-    const a=sstep(0.5,0.72,c*0.8+w*0.25)*255;
+    /* cloud cover is banded like the real circulation: a thick ITCZ over the
+       equator, clear skies under the subtropical highs where the deserts sit,
+       and the storm tracks of the westerlies at ±50°. Features are stretched
+       east-west, the way the winds drag them. */
+    const la=Math.asin(clamp(py,-1,1))*180/Math.PI;      // py = sin(latitude)
+    const cover=0.44+0.34*Math.exp(-Math.pow((la-4)/10,2))
+                    -0.26*Math.exp(-Math.pow((Math.abs(la)-25)/12,2))
+                    +0.18*Math.exp(-Math.pow((Math.abs(la)-52)/15,2));
+    const swirl=(fbm(px*1.6+17,py*4+17,pz*1.6+17,3)-0.5)*0.5;
+    const c=fbm(px*2.4+51+swirl,py*5.5+51,pz*2.4+51+swirl,5);
+    const w=fbm(px*7+2,py*11+2,pz*7+2,3);
+    const a=sstep(0.5,0.78,(c*0.8+w*0.25)+(cover-0.5)*0.6)*255;
     return [255,255,255,a];
   },
   moon(px,py,pz){
@@ -745,10 +1077,16 @@ const HFIELDS={
     const ridge=1-Math.abs(2*fbm(px*5+31,py*5+31,pz*5+31,4)-1); // sharp crests
     return clamp(0.2+0.4*n+0.18*sstep(0.55,0.68,d)+0.2*ridge*sstep(0.5,0.75,n),0,1);
   },
-  earth(px,py,pz){
-    const hgt=fbm(px*2.4+7,py*2.4+7,pz*2.4+7,6);
-    if(hgt<0.505) return 0.3;                                // sea level is flat
-    return 0.3+0.7*(hgt-0.505)+0.35*sstep(0.66,0.8,hgt);     // ranges where rock shows
+  earth(px,py,pz,lat,lon){
+    /* same warped lookup as the color pass, so the relief lands on the same
+       coastlines: continents stand off a flat abyssal plain, and the traced
+       ranges push up ridged crests */
+    const g=earthGeo(px,py,pz,lat,lon);
+    const n=fbm(px*3+7,py*3+7,pz*3+7,5);
+    const ridge=1-Math.abs(2*fbm(px*6+29,py*6+29,pz*6+29,4)-1);
+    const sea=0.3+0.05*n, land=0.5+0.12*n+0.34*g.range*(0.55+0.45*ridge);
+    const t=sstep(0.35,0.65,g.land);                        // shelf slope at the coast
+    return clamp(sea+(land-sea)*t,0,1);
   },
   pluto(px,py,pz){
     const n=fbm(px*2.5,py*2.5,pz*2.5,5), b=fbm(px*1.2+4,py*1.2+4,pz*1.2+4,3);
@@ -1032,8 +1370,8 @@ function surfaceTexture(id,onProgress){
     let height=null;
     if(dscale){
       const hf=HFIELDS[id]||HF_DEFAULT;
-      const hcv=await bakeSurface(1024,(px,py,pz,lat)=>{
-        const v=clamp(hf(px,py,pz,lat),0,1)*255; return [v,v,v];
+      const hcv=await bakeSurface(1024,(px,py,pz,lat,lon)=>{
+        const v=clamp(hf(px,py,pz,lat,lon),0,1)*255; return [v,v,v];
       },null,p=>P(0.8+p*0.2));
       softenCanvas(hcv,2);
       if(HCRATERS[id]) paintCraterHeights(hcv.getContext("2d"),hcv.width,hcv.height,HCRATERS[id][0],HCRATERS[id][1]);
