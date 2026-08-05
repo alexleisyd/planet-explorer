@@ -15,10 +15,12 @@ Open `index.html` in a browser. That's it — everything (including Three.js) is
 | WASD / arrows | Nudge the camera |
 | Space, `[` `]` | Hold time / slow down / speed up |
 | `G` | Show the science layers |
+| `N` | Name the landmarks on this world |
+| `X` | Open "sense of scale" |
 | Bottom strip | Click a dot to set course; moons stack above their parent planet |
 | Strip background / `⤢ orbital plot` | Open the live 2D system map |
 | `⬡ captain's log` | Open the survey-badge log |
-| Esc | Close the system map or log |
+| Esc | Close the system map, log or scale panel |
 
 ## What's inside
 
@@ -29,9 +31,11 @@ Open `index.html` in a browser. That's it — everything (including Three.js) is
 - **The view from a moon** — select any moon and its host planet hangs in the sky: Saturn and its rings loom over Enceladus, Jupiter's bands churn above Io, Neptune rises past Triton's shoulder, and Earth (clouds and all) floats over the Moon — spinning, lit by the same Sun, with their winds still blowing. And the sky moves: the planet circles the moon at the moon's real orbital direction and (game-scaled) period — backwards for Triton — waxing and waning through phases as the Sun angle sweeps around. Tidal locking is honored everywhere: every moon spins exactly once per orbit so its host stays over the same face, and Pluto & Charon — the solar system's only mutually locked pair — each keep one face toward the other.
 - **Time warp** — every world turns on the same clock: one second of flight is six minutes of that world's day, wherever you are. Warp it up to 60× (or hold it still) and the physics becomes something you can watch: the Moon keeps the same face toward Earth all the way around its orbit, Haumea tumbles end-over-end every four hours while Venus barely creeps, and the terminator sweeps across the ground below you.
 - **Science layers** — press `G` and the target gets its schematic: spin axis with the poles marked and the real axial tilt on the label, the equator, an arrow for which way it turns, and — drawn in the Sun's frame rather than the body's — the sub-solar point where the Sun stands straight overhead and the terminator, the sunrise/sunset line every point rolls through once a day. Uranus lying on its side at 98°, Venus hanging upside down at 177° so its spin runs backwards, and Triton turning against its own orbit all become plain to see rather than something to take on trust.
+- **Named landmarks** — press `N` and the real places on the world below get named: Olympus Mons and Valles Marineris on Mars, Tycho and Mare Imbrium on the Moon (and the Sea of Tranquility, where Apollo 11 landed), Caloris on Mercury, Sputnik Planitia on Pluto, Loki Patera on Io, Valhalla on Callisto, the Cassini Division in Saturn's rings, the Great Red Spot as it drifts. They are not stickers on noise: every entry is stamped into the surface *and* the height map at its real latitude and longitude, so Valles Marineris is genuinely a gash 4,000 km long and Olympus really is a shield volcano with a caldera. Fly closer to whichever one you are pointing at and it tells you what it is. Worlds we have only ever seen as cloud — Venus, Uranus — honestly have nothing to show.
+- **Sense of scale** — press `X`. The target and Earth are drawn at one scale, which is the whole point: next to the Sun, Earth is a dot you have to hunt for. Then the entire solar system shrinks until the Sun is a 30 cm beach ball — Earth becomes a peppercorn 32 m away, Neptune a marble most of a kilometre off — and the distances get measured in things that take time: how long sunlight takes to arrive, how long a radio call to Earth takes each way, how many years an airliner would need to fly there. Every number is computed from the body's real radius and orbit.
 - **Real numbers** — the HUD shows live range-to-surface and velocity in kilometers scaled to each body's true radius, plus radius / day length / axial tilt / orbital distance data.
 - **"You, here"** — enter your weight and age in the pilot row and every world shows what *you* would weigh there, how high you could jump (35 m on Enceladus!), and how many birthdays you'd have had — real surface gravity and orbital periods, saved between visits.
 - **Avionics-style cockpit HUD** — instrument tapes, a system-map strip scaled by log distance, and a full-screen orbital plot where planets crawl along their orbits at speeds proportional to their real periods.
-- **Single file** — the whole game is `index.html` (~2,300 lines); `three.min.js` (r128) is the only dependency, vendored locally.
+- **Single file** — the whole game is `index.html` (~2,700 lines); `three.min.js` (r128) is the only dependency, vendored locally.
 
 Textures bake asynchronously in ~14 ms slices (with a scan-progress overlay), so the page never freezes; each body bakes once per session and is cached.

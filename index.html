@@ -53,18 +53,30 @@
   #instruments .ctl .value{min-width:44px}
   .tick{background:none;border:1px solid var(--hairline);color:var(--chrome);font-family:var(--mono);font-size:11px;line-height:1;width:19px;height:19px;padding:0;cursor:pointer;pointer-events:auto}
   .tick:hover,.tick:focus-visible{color:var(--amber);border-color:var(--amber)}
-  #layerBtn{margin-top:1px;background:none;border:1px solid var(--hairline);color:var(--chrome);font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;padding:4px 9px;cursor:pointer;pointer-events:auto}
-  #layerBtn:hover,#layerBtn:focus-visible{border-color:var(--amber)}
-  #layerBtn[aria-pressed="true"]{color:var(--amber);border-color:var(--amber)}
+  .ovbtn{display:block;margin-top:5px;background:none;border:1px solid var(--hairline);color:var(--chrome);font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;padding:4px 9px;cursor:pointer;pointer-events:auto}
+  .ovbtn:hover,.ovbtn:focus-visible{border-color:var(--amber)}
+  .ovbtn[aria-pressed="true"]{color:var(--amber);border-color:var(--amber)}
+  .ovbtn:disabled{opacity:.35;cursor:default;border-color:var(--hairline);color:var(--chrome)}
 
   /* science-layer callouts, projected onto the 3D view each frame */
-  #layerLabels{position:absolute;inset:0}
+  #layerLabels,#markLabels{position:absolute;inset:0}
   /* the chip keeps a callout legible over pale worlds like Uranus, where thin
      chrome text on cyan all but disappears */
   .llab{position:absolute;transform:translate(-50%,-50%);font-family:var(--mono);font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink);white-space:nowrap;background:rgba(4,6,10,.62);padding:2px 6px}
   .llab.hot{color:var(--amber)}
   .llab.up{transform:translate(-50%,-190%)}
   .llab[hidden]{display:none}
+
+  /* landmark pins: the name sits over the tick, and only the one nearest the
+     crosshair unfolds its note, so a crowded limb stays readable */
+  .mlab{position:absolute;transform:translate(-50%,-100%);margin-top:-14px;background:rgba(4,6,10,.66);padding:3px 7px;border-left:1px solid var(--amber)}
+  .mlab b{display:block;font-family:var(--mono);font-size:9.5px;font-weight:400;letter-spacing:.16em;text-transform:uppercase;color:var(--amber);white-space:nowrap}
+  /* the note hangs off the chip rather than growing it, so a name never jumps
+     away from its own tick when it becomes the one you are pointing at */
+  .mlab .note{display:none;position:absolute;left:-1px;top:100%;width:230px;margin-top:3px;background:rgba(4,6,10,.72);border-left:1px solid var(--hairline);padding:5px 7px;font-size:11px;line-height:1.5;color:var(--chrome)}
+  .mlab.near{z-index:2}
+  .mlab.near .note{display:block}
+  .mlab[hidden]{display:none}
 
   /* data panel, right */
   #datapanel{position:absolute;right:44px;top:50%;transform:translateY(-50%);width:230px;background:var(--panel);border:1px solid var(--hairline);padding:16px 18px;backdrop-filter:blur(3px);pointer-events:auto}
@@ -77,6 +89,27 @@
   #datapanel .row .label{letter-spacing:.14em}
   #datapanel .row .value{font-size:12px;color:var(--ink);white-space:nowrap;margin-left:8px}
   #factline{margin-top:12px;padding-top:10px;border-top:1px solid rgba(139,147,163,.14);font-size:11.5px;line-height:1.6;color:var(--chrome);letter-spacing:.02em}
+  #scaleBtn{margin-top:12px;background:none;border:0;padding:0;font-family:var(--sans);font-size:9px;letter-spacing:.26em;color:var(--dim);text-transform:uppercase;cursor:pointer}
+  #scaleBtn:hover,#scaleBtn:focus-visible{color:var(--amber)}
+
+  /* sense-of-scale overlay */
+  #scale{position:fixed;inset:0;background:rgba(4,6,10,.82);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;z-index:11}
+  #scale[hidden]{display:none}
+  #scalePanel{position:relative;width:min(820px,92vw);max-height:88vh;overflow:auto;background:var(--panel);border:1px solid var(--hairline);padding:26px 28px 20px}
+  #scaleTitle{font-size:10px;letter-spacing:.26em;color:var(--dim);text-transform:uppercase}
+  #scaleClose{position:absolute;top:14px;right:14px;background:none;border:1px solid var(--hairline);color:var(--chrome);font-family:var(--mono);font-size:12px;width:26px;height:26px;cursor:pointer}
+  #scaleClose:hover,#scaleClose:focus-visible{color:var(--amber);border-color:var(--amber)}
+  #scaleGrid{display:grid;grid-template-columns:minmax(260px,1fr) minmax(280px,1.15fr);gap:26px;margin-top:18px}
+  #scale h4{font-size:9.5px;letter-spacing:.22em;color:var(--dim);font-weight:600;text-transform:uppercase;margin:22px 0 10px}
+  #scaleGrid>div>h4:first-child{margin-top:0}
+  #scaleSvg{display:block;width:100%;height:auto}
+  #scaleSvg text{fill:#7c8492;font-size:9.5px;letter-spacing:.18em;text-transform:uppercase;font-family:var(--sans)}
+  .sline{font-size:12px;line-height:1.65;color:var(--ink)}
+  #sSize{margin-top:8px}
+  .srow{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:6px 0;border-top:1px solid rgba(139,147,163,.14)}
+  .srow .value{font-size:12px;color:var(--amber);white-space:nowrap}
+  #scaleFoot{margin-top:18px;font-family:var(--mono);font-size:9px;letter-spacing:.14em;color:var(--dim);text-transform:uppercase;line-height:1.7}
+  @media (max-width:700px){ #scaleGrid{grid-template-columns:1fr} }
 
   /* system map strip, bottom — the planet selector */
   #systemmap{position:absolute;left:50%;bottom:34px;transform:translateX(-50%);width:min(860px,86vw);height:74px;pointer-events:auto}
@@ -217,8 +250,9 @@
       <div class="sub" id="warpSub">1 s = 6 min here</div>
     </div>
     <div class="cell">
-      <div class="label">Science layers</div>
-      <button id="layerBtn" aria-pressed="false">off · key g</button>
+      <div class="label">Overlays</div>
+      <button class="ovbtn" id="layerBtn" aria-pressed="false">axis &amp; sun · key g</button>
+      <button class="ovbtn" id="markBtn" aria-pressed="false">landmarks · key n</button>
     </div>
   </div>
 
@@ -234,6 +268,7 @@
     <div class="row" id="yBdayRow"><span class="label">Birthdays here</span><span class="value" id="yBday">—</span></div>
     <div class="row"><span class="label">Pilot</span><span class="value"><input id="pMass" type="number" min="10" max="200" inputmode="numeric"> kg · <input id="pAge" type="number" min="1" max="120" inputmode="numeric"> yr</span></div>
     <div id="factline">—</div>
+    <button id="scaleBtn" aria-haspopup="dialog">⊕ sense of scale · key x</button>
   </div>
 
   <div id="mission">
@@ -259,7 +294,8 @@
   </div>
 
   <div id="layerLabels" aria-hidden="true"></div>
-  <div id="hint">drag to fly &nbsp;·&nbsp; scroll to approach &nbsp;·&nbsp; space holds time &nbsp;·&nbsp; g shows the axis</div>
+  <div id="markLabels" aria-hidden="true"></div>
+  <div id="hint">drag to fly &nbsp;·&nbsp; scroll to approach &nbsp;·&nbsp; space holds time &nbsp;·&nbsp; g shows the axis &nbsp;·&nbsp; n names the landmarks &nbsp;·&nbsp; x for scale</div>
   <div id="scan"><div class="inner" id="scanText">Scanning surface</div></div>
 </div>
 
@@ -269,6 +305,27 @@
     <button id="orreryClose" aria-label="Close orbital plot">✕</button>
     <svg id="orrerySvg" viewBox="0 0 640 640" aria-hidden="false"></svg>
     <div id="orreryHint">select a body to set course &nbsp;·&nbsp; esc to close</div>
+  </div>
+</div>
+
+<div id="scale" role="dialog" aria-label="Sense of scale" hidden>
+  <div id="scalePanel">
+    <div id="scaleTitle">Sense of scale</div>
+    <button id="scaleClose" aria-label="Close">✕</button>
+    <div id="scaleGrid">
+      <div>
+        <h4>Drawn at one scale</h4>
+        <svg id="scaleSvg" viewBox="0 0 320 190" aria-hidden="true"></svg>
+        <div class="sline" id="sSize">—</div>
+      </div>
+      <div>
+        <h4>Shrink the Sun to a 30 cm beach ball</h4>
+        <div class="sline" id="sModel">—</div>
+        <h4>How long that takes</h4>
+        <div id="scaleRows"></div>
+      </div>
+    </div>
+    <div id="scaleFoot">distances to Earth are quoted at closest approach &nbsp;·&nbsp; airliner at 900 km/h &nbsp;·&nbsp; esc to close</div>
   </div>
 </div>
 
@@ -396,6 +453,167 @@ function fbm(x,y,z,oct){
 const clamp=(v,a,b)=>v<a?a:(v>b?b:v);
 const mixv=(a,b,t)=>[a[0]+(b[0]-a[0])*t, a[1]+(b[1]-a[1])*t, a[2]+(b[2]-a[2])*t];
 const sstep=(a,b,v)=>{ const t=clamp((v-a)/(b-a),0,1); return t*t*(3-2*t); };
+
+/* ================= named landmarks =================
+   Real places at the coordinates the spacecraft that mapped them quote:
+   latitude °N, east longitude °. One table does three jobs — it stamps the
+   feature into the color pass, stamps the matching relief into the height
+   pass, and (with N) hangs a callout over it — so a label always points at
+   something that is really there rather than at a lump of noise.
+
+   Entries carrying no `c`, `h` or `lvl` are label-only: the surface already
+   draws that feature (Earth's traced geography, the Great Red Spot's own
+   overlay, Triton's polar cap), so the pin does nothing but name it. Worlds
+   whose visible surface is cloud, not ground — Venus, Uranus — get no
+   landmarks at all: you cannot see the ground from here.
+
+   Sizes are angular radii in *degrees of arc*, which is what a feature's
+   real width gives you: a basin D km across on a body of radius R spans
+   (D/2)/R radians. The bake runs 180° out of phase with map longitude
+   (Earth's traced coastlines set that convention) — hence the +180 in lmT
+   and lmDir, the only two places the offset appears. */
+const LANDMARKS={
+  earth:[  /* all label-only: COASTS/RANGES already put these where they belong */
+    {n:"Mount Everest",lat:28,lon:86.9,note:"8,849 m — the highest ground on Earth, and still rising as India ploughs into Asia."},
+    {n:"The Sahara",lat:23,lon:13,note:"The largest hot desert, nearly the size of the United States. Six thousand years ago it was green."},
+    {n:"The Amazon",lat:-3,lon:-60,note:"One rainforest holding roughly a tenth of all the species we have ever named."},
+    {n:"The Pacific",lat:0,lon:-160,note:"Wider than every continent laid end to end. From above it, Earth looks like a water world."},
+    {n:"Antarctica",lat:-82,lon:20,note:"Ice up to 4.8 km thick, holding about two thirds of all the fresh water on Earth."},
+  ],
+  moon:[
+    {n:"Mare Imbrium",lat:32.8,lon:-15.6,r:18.9,k:"plain",c:[62,62,70],ck:0.8,lvl:0.3,
+      note:"A lava sea 1,150 km wide, flooding a crater from an impact that nearly split the Moon open."},
+    {n:"Tycho",lat:-43.3,lon:-11.4,r:1.5,k:"rays",c:[236,236,240],ck:0.9,rr:14,h:0.07,
+      note:"Only 108 million years old — young enough that its bright ejecta still streaks a quarter of the way round the Moon."},
+    {n:"Tranquility Base",lat:0.7,lon:23.5,note:"Apollo 11 landed here on 20 July 1969. With no wind, the footprints are still there."},
+  ],
+  mercury:[
+    {n:"Caloris Planitia",lat:30.5,lon:189.8,r:18.2,k:"basin",c:[178,170,160],ck:0.5,h:0.12,
+      note:"A crater 1,550 km across. Its shock waves met again on the far side of Mercury and shattered the ground there."},
+  ],
+  mars:[
+    {n:"Olympus Mons",lat:18.7,lon:226.2,r:5.1,k:"mons",c:[218,172,136],ck:0.5,h:0.34,
+      note:"The tallest volcano known: 22 km high and so broad that from the summit its own edges lie below the horizon."},
+    {n:"Valles Marineris",lat:-14,lon:301,rx:33.8,ry:1.7,k:"canyon",c:[74,38,24],ck:0.8,h:0.34,
+      note:"A canyon 4,000 km long — it would reach clear across the United States — and up to 7 km deep."},
+    {n:"Hellas Planitia",lat:-42.4,lon:70.5,r:19.4,k:"basin",c:[224,180,140],ck:0.55,h:0.26,
+      note:"The deepest basin on Mars, 7 km down. The air at its floor is the thickest on the planet."},
+  ],
+  ceres:[
+    {n:"Occator",lat:19.8,lon:239.3,r:5.6,k:"rays",c:[255,255,250],ck:0.95,rr:3,h:0.1,
+      note:"Salt left behind by briny water that seeped up and froze — the brightest spots in the whole asteroid belt."},
+    {n:"Ahuna Mons",lat:-10.5,lon:316,r:1.1,k:"mons",c:[232,230,226],ck:0.5,h:0.3,
+      note:"A 4 km mountain that erupted slush instead of lava, and the youngest big peak on Ceres."},
+  ],
+  jupiter:[
+    {n:"Great Red Spot",lat:-20.6,lon:-117,rx:24,ry:9.2,on:"spot",
+      note:"A storm wider than Earth that has been spinning for at least 190 years — and is slowly shrinking."},
+  ],
+  io:[
+    {n:"Loki Patera",lat:12.6,lon:308.8,r:3.2,k:"stain",c:[26,20,16],ck:0.85,
+      note:"A lake of molten rock 200 km wide — the most powerful volcano in the solar system. It overturns every few months."},
+    {n:"Pele",lat:-18.7,lon:255.3,r:1.6,k:"rays",c:[214,86,64],ck:0.7,rr:12,
+      note:"Its plume throws sulfur 300 km straight up and paints a red ring 1,300 km wide on the ground below."},
+  ],
+  europa:[
+    {n:"Pwyll",lat:-25,lon:271,r:0.9,k:"rays",c:[246,248,252],ck:0.9,rr:30,h:0.05,
+      note:"A fresh crater whose bright rays are splashed 1,000 km across the ice — one of the youngest marks on Europa."},
+    {n:"Conamara Chaos",lat:9.3,lon:274,r:1.5,k:"stain",c:[174,140,112],ck:0.7,
+      note:"Icebergs the size of cities, tipped over and refrozen, where the shell above the ocean broke apart."},
+  ],
+  ganymede:[
+    {n:"Galileo Regio",lat:35,lon:125,r:34.8,k:"stain",c:[78,68,58],ck:0.55,
+      note:"A dark block of the original crust, 3,200 km across, older than the bright grooves that surround it."},
+  ],
+  callisto:[
+    {n:"Valhalla",lat:14,lon:57,r:7.1,k:"rays",c:[214,212,204],ck:0.8,rr:6.3,
+      note:"A bull's-eye of frozen ripples 3,800 km across — a splash in the ice, stopped four billion years ago."},
+  ],
+  saturn:[
+    {n:"Great White Spot",lat:14.5,lon:-48.2,rx:6.3,ry:2.9,
+      note:"Once a Saturnian year — about 30 of ours — a storm boils up out of the depths and wraps right around the planet."},
+    {n:"Cassini Division",ringR:1.81,
+      note:"A 4,800 km gap swept clear by the moon Mimas: ice orbiting here is tugged twice per Mimas year until it leaves."},
+  ],
+  enceladus:[
+    {n:"Tiger stripes",lat:-80,lon:0,note:"Four warm cracks near the south pole jet ocean water into space. Cassini flew through the spray and tasted salt."},
+  ],
+  titan:[
+    {n:"Kraken Mare",lat:68,lon:310,r:13,k:"stain",c:[122,76,28],ck:0.4,
+      note:"A sea of liquid methane larger than the Caspian. The haze hides it from our eyes, so radar had to find it."},
+  ],
+  neptune:[
+    {n:"Great Dark Spot",lat:-21.8,lon:26.3,rx:19.5,ry:8.6,on:"spot",
+      note:"A storm as wide as Earth when Voyager 2 passed in 1989 — and gone when Hubble looked five years later."},
+  ],
+  triton:[
+    {n:"South polar cap",lat:-70,lon:0,note:"Pink nitrogen frost, with geysers of nitrogen gas blowing 8 km up and streaking downwind."},
+  ],
+  pluto:[
+    {n:"Sputnik Planitia",lat:20,lon:180,rx:25.3,ry:19.3,k:"plain",c:[246,240,224],ck:0.9,lvl:0.24,
+      note:"The left half of Pluto's heart: a glacier of nitrogen ice bigger than Texas, churning in cells you can see from space."},
+  ],
+  charon:[
+    {n:"Mordor Macula",lat:80,lon:0,note:"A red polar stain of tholins — gas that leaked off Pluto, froze here, and was cooked by sunlight."},
+  ],
+};
+const RAD=Math.PI/180;
+/* how far a bake point lies from a feature's centre, as a fraction of its
+   own radius: 1 is the rim. Offsets are measured east and north in degrees
+   of arc, so an elongated feature can be laid along its true bearing (`a`,
+   degrees counter-clockwise from east) and comes out the same shape on the
+   globe as it is on the map. */
+function lmT(f,px,py,pz){
+  let dl=Math.atan2(pz,px)/RAD-f.lon-180;
+  while(dl>180)dl-=360; while(dl<-180)dl+=360;
+  let dx=dl*Math.cos(f.lat*RAD), dy=Math.asin(clamp(py,-1,1))/RAD-f.lat;
+  if(f.a){ const c=Math.cos(f.a*RAD), s=Math.sin(f.a*RAD), t=dx*c+dy*s; dy=dy*c-dx*s; dx=t; }
+  const rx=f.rx||f.r, ry=f.ry||f.r;
+  return Math.sqrt(dx*dx/(rx*rx)+dy*dy/(ry*ry));
+}
+/* the shape of each kind of feature in the height field, at distance t:
+   craters are a bowl ringed by a raised rim, volcanoes a cone with a summit
+   caldera bitten out of it, canyons a steep trench, basins a wide hollow */
+function lmShape(k,t){
+  if(k==="rays"||k==="crater") return -(1-sstep(0,0.9,t))+0.45*Math.exp(-Math.pow((t-0.97)/0.13,2));
+  if(k==="mons") return (1-sstep(0,1,t))-0.3*Math.exp(-Math.pow(t/0.13,2));  // cone, summit caldera bitten out
+  if(k==="canyon") return -(1-sstep(0.25,1,t));
+  return -(1-sstep(0.4,1,t));
+}
+/* landmarks in the color pass; runs on every body from surfaceTexture */
+function lmPaint(id,px,py,pz,col){
+  for(const f of LANDMARKS[id]){
+    if(!f.c) continue;
+    const t=lmT(f,px,py,pz);
+    if(t>(f.rr||1.2)) continue;
+    let a=(1-sstep(0.55,1.05,t))*f.ck;
+    /* ejecta: bright debris thrown well clear of a young crater's rim,
+       thinning and breaking up with distance */
+    if(f.k==="rays"&&f.rr)
+      a=Math.max(a,sstep(0.45,0.8,fbm(px*26,py*26,pz*26,3))*(1-sstep(0.9,f.rr,t))*f.ck*0.85);
+    col=mixv(col,f.c,clamp(a,0,1));
+    /* the dark eye of a caldera, in whatever palette the body already has —
+       it is what makes a shield volcano read as one from above */
+    if(f.k==="mons") col=mixv(col,[col[0]*0.6,col[1]*0.58,col[2]*0.58],(1-sstep(0.05,0.2,t))*0.85);
+  }
+  return col;
+}
+/* the matching relief, on any body that has a height map */
+function lmRelief(id,px,py,pz,h){
+  for(const f of LANDMARKS[id]){
+    if(f.h==null&&f.lvl==null) continue;
+    const t=lmT(f,px,py,pz);
+    if(t>1.3) continue;
+    if(f.lvl!=null){ const w=1-sstep(0.6,1,t); h=h*(1-w)+f.lvl*w; }  // a flat floor at its own level
+    if(f.h!=null) h+=f.h*lmShape(f.k,t);
+  }
+  return h;
+}
+/* the outward direction of a place, in the surface mesh's own frame */
+function lmDir(lat,lon){
+  const c=Math.cos(lat*RAD);
+  return new THREE.Vector3(c*Math.cos(lon*RAD),Math.sin(lat*RAD),-c*Math.sin(lon*RAD));
+}
 
 /* ================= texture builders ================= */
 /* bakes in ~14 ms slices so the page never freezes; reports progress */
@@ -1079,9 +1297,10 @@ const POSTS = {
   charon:(ctx,w,h)=>paintCraters(ctx,w,h,60,0.5),
   ceres:(ctx,w,h)=>{
     paintCraters(ctx,w,h,120,0.85);
-    /* Occator-style bright salt faculae */
+    /* lesser salt faculae; Occator itself is stamped at its real coordinates
+       from LANDMARKS, before this pass runs */
     let seed=5; const rnd=()=>{ seed=(seed*16807)%2147483647; return seed/2147483647; };
-    for(let i=0;i<4;i++){
+    for(let i=0;i<3;i++){
       const x=rnd()*w, y=h*0.25+rnd()*h*0.5, r=w*0.003+rnd()*w*0.004;
       const g=ctx.createRadialGradient(x,y,0,x,y,r);
       g.addColorStop(0,"rgba(255,255,250,0.95)"); g.addColorStop(0.5,"rgba(230,235,240,0.5)"); g.addColorStop(1,"rgba(255,255,255,0)");
@@ -1406,14 +1625,26 @@ function surfaceTexture(id,onProgress){
   if(!texCache[id]) texCache[id]=(async()=>{
     const P=onProgress||(()=>{});
     const dscale=DISPLACE[id];
-    const cv=await bakeSurface(TEX_SIZES[id]||2048,SURFACES[id],POSTS[id],dscale?p=>P(p*0.8):P);
+    /* named landmarks go on centrally, over the noise and under the crater
+       fields, so the color pass and the height pass below stamp the same
+       table and a callout can point at either */
+    const base=SURFACES[id];
+    const fn=LANDMARKS[id]?((px,py,pz,lat,lon)=>lmPaint(id,px,py,pz,base(px,py,pz,lat,lon))):base;
+    const cv=await bakeSurface(TEX_SIZES[id]||2048,fn,POSTS[id],dscale?p=>P(p*0.8):P);
     const map=new THREE.CanvasTexture(cv);
     map.encoding=THREE.sRGBEncoding; map.anisotropy=renderer.capabilities.getMaxAnisotropy();
     let height=null;
     if(dscale){
       const hf=HFIELDS[id]||HF_DEFAULT;
-      const hcv=await bakeSurface(1024,(px,py,pz,lat,lon)=>{
-        const v=clamp(hf(px,py,pz,lat,lon),0,1)*255; return [v,v,v];
+      const lm=LANDMARKS[id];
+      /* a landmark with real relief needs twice the height resolution: the
+         softening pass below would otherwise smear something as narrow as
+         Valles Marineris (3° of arc) away to nothing */
+      const hsize=(lm&&lm.some(f=>f.h!=null||f.lvl!=null))?2048:1024;
+      const hcv=await bakeSurface(hsize,(px,py,pz,lat,lon)=>{
+        let e=hf(px,py,pz,lat,lon);
+        if(lm) e=lmRelief(id,px,py,pz,e);
+        const v=clamp(e,0,1)*255; return [v,v,v];
       },null,p=>P(0.8+p*0.2));
       softenCanvas(hcv,2);
       if(HCRATERS[id]) paintCraterHeights(hcv.getContext("2d"),hcv.width,hcv.height,HCRATERS[id][0],HCRATERS[id][1]);
@@ -1628,7 +1859,7 @@ canvas.addEventListener("wheel",e=>{
 },{passive:false});
 const keys={};
 addEventListener("keydown",e=>{
-  if(e.key==="Escape"){ closeOrrery(); closeLog(); }
+  if(e.key==="Escape"){ closeOrrery(); closeLog(); closeScale(); }
   if(e.target.tagName==="INPUT") return; // typing a pilot value, not flying
   if(e.key.startsWith("Arrow")||e.key==="w"||e.key==="a"||e.key==="s"||e.key==="d"){ keys[e.key]=true; hideHint(); }
 });
@@ -1836,17 +2067,132 @@ function updateLayerLabels(){
 function setLayers(on){
   layers.on=on;
   layers.group.visible=on;
-  const btn=$("layerBtn");
-  btn.setAttribute("aria-pressed",on?"true":"false");
-  btn.textContent=on?"on · key g":"off · key g";
+  $("layerBtn").setAttribute("aria-pressed",on?"true":"false");
   if(on) updateLayerLabels();
   else for(const l of layers.labels) l.el.hidden=true;
 }
 $("layerBtn").addEventListener("click",()=>setLayers(!layers.on));
+
+/* ================= landmark callouts =================
+   N pins every entry LANDMARKS holds for the target: a tick planted on the
+   spot, an outline round anything big enough to have an edge, and a chip
+   naming it. The pins hang off frames that copy the body's own rotation, so
+   they ride the surface as it turns — with a second frame for the two great
+   storms, which drift across the winds on their own overlay meshes, and a
+   third, spinless one for the ring gaps. Whichever pin is nearest the
+   crosshair opens up and says what the place is. */
+const marks={on:false,want:false,group:new THREE.Group(),pins:[],frames:null};
+marks.group.visible=false;
+scene.add(marks.group);
+/* the rim of a feature, walked round its own ellipse and laid on the globe */
+function lmRing(f,R,seg){
+  const rx=f.rx||f.r, ry=f.ry||f.r, p=[], cl=Math.max(0.15,Math.cos(f.lat*RAD));
+  for(let i=0;i<seg;i++){
+    const th=i/seg*Math.PI*2;
+    let dx=Math.cos(th)*rx, dy=Math.sin(th)*ry;
+    if(f.a){ const c=Math.cos(f.a*RAD), s=Math.sin(f.a*RAD), t=dx*c-dy*s; dy=dx*s+dy*c; dx=t; }
+    p.push(lmDir(f.lat+dy,f.lon+dx/cl).multiplyScalar(R));
+  }
+  return p;
+}
+function buildMarks(b){
+  const g=marks.group;
+  while(g.children.length) g.remove(g.children[0]);
+  for(const p of marks.pins) p.el.remove();
+  marks.pins=[];
+  marks.frames=null;
+  const L=LANDMARKS[b.id];
+  if(!L) return;
+  const body=new THREE.Group(), spot=new THREE.Group(), tilt=new THREE.Group();
+  g.add(body); g.add(spot); g.add(tilt);
+  marks.frames={body,spot,tilt};
+  /* clear of the relief (which pushes out by half the displacement scale)
+     and of Earth's cloud deck at 1.014 */
+  const R=1.035+(DISPLACE[b.id]||0)*0.5;
+  for(const f of L){
+    const el=document.createElement("div");
+    el.className="mlab";
+    el.innerHTML='<b></b><span class="note"></span>';
+    el.querySelector("b").textContent=f.n;
+    el.querySelector(".note").textContent=f.note;
+    el.hidden=true;
+    $("markLabels").appendChild(el);
+    if(f.ringR!=null){
+      /* a gap in the rings has no one place to stand: the pin rides round to
+         whichever side of the ring you are looking at, like the equator */
+      const rr=f.ringR;
+      marks.pins.push({el,through:true,get(v){
+        tilt.worldToLocal(v.copy(camera.position));
+        v.y=0;
+        if(v.lengthSq()<1e-9) v.set(1,0,0);
+        v.normalize().multiplyScalar(rr);
+        return tilt.localToWorld(v);
+      }});
+      continue;
+    }
+    const fr=f.on==="spot"?spot:body;
+    const dir=lmDir(f.lat,f.lon);
+    const objs=[layerLine([dir.clone().multiplyScalar(0.99),dir.clone().multiplyScalar(R)],LAY_HOT,0.75)];
+    /* amber, like the tick: a grey outline vanishes on the pale worlds
+       (Saturn's cream deck, Pluto's ice) where it is needed most */
+    if((f.rx||f.r||0)>=1.5) objs.push(layerLine(lmRing(f,R*0.998,64),LAY_HOT,0.55,true));
+    for(const o of objs) fr.add(o);
+    const at=new THREE.Object3D(); at.position.copy(dir).multiplyScalar(R); fr.add(at);
+    marks.pins.push({el,objs,get:v=>at.getWorldPosition(v)});
+  }
+  if(marks.on) updateMarks();
+}
+const _mv=new THREE.Vector3(), _mp=new THREE.Vector3(), _mq=new THREE.Quaternion();
+function updateMarks(){
+  const fr=marks.frames;
+  if(!fr||!current||!built[current.id]) return;
+  const bd=built[current.id];
+  fr.body.quaternion.copy(bd.spinGroup.getWorldQuaternion(_mq));
+  fr.spot.quaternion.copy((bd.spotMesh||bd.spinGroup).getWorldQuaternion(_mq));
+  fr.tilt.quaternion.copy(bd.group.getWorldQuaternion(_mq));
+  marks.group.updateMatrixWorld(true);
+  const w=innerWidth, h=innerHeight;
+  let best=null, bestD=1e9;
+  for(const p of marks.pins){
+    const v=p.get(_mv);
+    const seen=p.through||v.dot(camera.position)>1;   // the body hides its own far side
+    _mp.copy(v).project(camera);
+    const on=seen&&_mp.z<1;
+    p.el.hidden=!on;
+    /* the tick and outline stand a little off the surface, so on the far side
+       they would swing clear of the limb and hang in space: cut them with the
+       same horizon the label uses */
+    if(p.objs) for(const o of p.objs) o.visible=seen;
+    if(!on) continue;
+    const x=(_mp.x*0.5+0.5)*w, y=(-_mp.y*0.5+0.5)*h;
+    p.el.style.left=x.toFixed(1)+"px";
+    p.el.style.top=y.toFixed(1)+"px";
+    const d=Math.hypot(x-w*0.5,y-h*0.5);
+    if(d<bestD){ bestD=d; best=p; }
+  }
+  /* only the one you are actually pointing at tells its story */
+  for(const p of marks.pins) p.el.classList.toggle("near",p===best&&bestD<Math.min(w,h)*0.28);
+}
+function setMarks(on){
+  marks.want=on;          // sticky across targets: a world with nothing named does not switch it off for good
+  marks.on=on&&marks.pins.length>0;
+  marks.group.visible=marks.on;
+  const btn=$("markBtn");
+  btn.setAttribute("aria-pressed",marks.on?"true":"false");
+  /* nothing named to show on a world we have only ever seen as cloud */
+  btn.disabled=!marks.pins.length;
+  btn.title=marks.pins.length?"":"No mapped landmarks on "+(current?current.name:"this world");
+  if(marks.on) updateMarks();
+  else for(const p of marks.pins) p.el.hidden=true;
+}
+$("markBtn").addEventListener("click",()=>setMarks(!marks.want));
+
 addEventListener("keydown",e=>{
   if(e.target.tagName==="INPUT") return;                    // typing a pilot value
   if(e.key===" "&&e.target.tagName==="BUTTON") return;      // space is activating a button
   if(e.key==="g"||e.key==="G"){ setLayers(!layers.on); hideHint(); }
+  else if(e.key==="n"||e.key==="N"){ setMarks(!marks.want); hideHint(); }
+  else if(e.key==="x"||e.key==="X"){ $("scale").hidden?openScale():closeScale(); hideHint(); }
   else if(e.key===" "){ e.preventDefault(); holdWarp(); hideHint(); }
   else if(e.key==="]"||e.key==="+"||e.key==="="){ stepWarp(1); hideHint(); }
   else if(e.key==="["||e.key==="-"){ stepWarp(-1); hideHint(); }
@@ -1885,6 +2231,9 @@ async function setTarget(id){
   $("factline").textContent=b.fact;
   updateYou();
   buildLayers(b,bd.spinRate);
+  buildMarks(b);
+  setMarks(marks.want);
+  updateScale();
   document.querySelectorAll(".mapdot").forEach(el=>el.setAttribute("aria-pressed",el.dataset.id===id));
   refreshOrrerySel();
   ctl.tDist=clamp(ctl.tDist,MIN_D,MAX_D);
@@ -2008,6 +2357,100 @@ function closeOrrery(){
 $("systemmap").addEventListener("click",e=>{ if(e.target.closest(".mapdot")) return; openOrrery(); });
 $("orreryClose").addEventListener("click",closeOrrery);
 $("orrery").addEventListener("click",e=>{ if(e.target.id==="orrery") closeOrrery(); });
+
+/* ================= sense of scale =================
+   The instruments quote real kilometres, but 4,495 million of them mean
+   nothing to anyone. This panel turns the target's numbers into things you
+   can picture: its disc drawn beside Earth's at one scale, the whole solar
+   system shrunk until the Sun is a beach ball you could carry, and how long
+   light, a radio call and an airliner take to cross the same gap. Every
+   figure is worked from the body's real radius and orbit — nothing here is
+   a stored string. */
+const C_KMS=299792.458;            // light and radio, km/s
+const JET_KMH=900;                 // an airliner at cruise
+const SUN_MODEL=0.30;              // the Sun shrunk to a 30 cm beach ball
+const MODEL_K=SUN_MODEL/1392680;   // model metres per real kilometre
+const AU=149.6;                    // M km, Earth's distance from the Sun
+/* what a body comes out the size of in that model */
+const MODEL_OBJ=[[0.2,"a speck of dust"],[0.6,"a grain of sand"],[1.2,"a poppy seed"],
+  [2,"a pinhead"],[3.5,"a peppercorn"],[8,"a pea"],[18,"a marble"],[45,"a golf ball"],
+  [90,"a tennis ball"],[1e9,"a beach ball"]];
+const objFor=mm=>MODEL_OBJ.find(o=>mm<o[0])[1];
+function dur(s){
+  if(s<90){ const n=Math.round(s); return n+(n===1?" second":" seconds"); }
+  if(s<5400){ const m=Math.floor(s/60), r=Math.round(s%60); return m+" min"+(r?" "+r+" s":""); }
+  if(s<172800) return +(s/3600).toFixed(1)+" hours";
+  if(s<86400*600) return Math.round(s/86400).toLocaleString("en-US")+" days";
+  const y=s/(86400*365.25);
+  return (y<20?+y.toFixed(1):Math.round(y).toLocaleString("en-US"))+" years";
+}
+const modelSize=mm=>mm<10?(mm<1?mm.toFixed(2):mm.toFixed(1))+" mm":(mm/10).toFixed(1)+" cm";
+const modelDist=m=>m<1?Math.round(m*100)+" cm":m<1000?(m<10?m.toFixed(1):Math.round(m))+" m":(m/1000).toFixed(2)+" km";
+const cnt=v=>v<10?+v.toFixed(1):v<1e6?Math.round(v).toLocaleString("en-US"):(v/1e6).toFixed(1)+" million";
+/* the two discs, drawn at one scale — which is the whole point, so the
+   smaller one is allowed to come out as a dot you can barely see */
+function drawScaleDiscs(b,ref){
+  const svg=$("scaleSvg"), ns="http://www.w3.org/2000/svg";
+  while(svg.firstChild) svg.removeChild(svg.firstChild);
+  const el=(t,a)=>{ const e=document.createElementNS(ns,t); for(const k in a) e.setAttribute(k,a[k]); svg.appendChild(e); return e; };
+  const big=Math.max(b.radiusKm,ref.radiusKm), R=74;
+  const rb=Math.max(0.6,R*b.radiusKm/big), rr=Math.max(0.6,R*ref.radiusKm/big);
+  const cy=92, x1=10+Math.max(rb,4), x2=Math.min(310-Math.max(rr,4),x1+rb+rr+36);
+  const disc=(x,r,c,name,small)=>{
+    if(small) el("circle",{cx:x,cy,r:8,fill:"none",stroke:"rgba(139,147,163,.5)","stroke-dasharray":"2 3"});
+    el("circle",{cx:x,cy,r,fill:c});
+    const t=el("text",{x,y:176,"text-anchor":"middle"}); t.textContent=name;
+  };
+  disc(x1,rb,b.dot.c,b.name,rb<4);
+  disc(x2,rr,ref.dot.c,ref.name,rr<4);
+}
+function updateScale(){
+  const b=current;
+  if(!b) return;
+  const ref=BODIES.find(x=>x.id===(b.id==="earth"?"moon":"earth"));
+  drawScaleDiscs(b,ref);
+  const refNm=ref.id==="earth"?"Earth":"the Moon", refPl=ref.id==="earth"?"Earths":"Moons";
+  const nm=b.id==="moon"?"the Moon":b.name;   // "The Moon" only reads right at the start of a sentence
+  const ratio=b.radiusKm/ref.radiusKm, vol=ratio*ratio*ratio;
+  $("sSize").textContent=Math.abs(ratio-1)<0.08
+    ? b.name+" is almost exactly the size of "+refNm+" — "+ratio.toFixed(2)+" times across."
+    : ratio>1
+      ? b.name+" is "+cnt(ratio)+" times as wide as "+refNm+". About "+cnt(vol)+" "+refPl+" would fit inside it."
+      : refNm[0].toUpperCase()+refNm.slice(1)+" is "+cnt(1/ratio)+" times as wide as "+nm
+        +". About "+cnt(1/vol)+" of them would fit inside it.";
+  /* the model. Moons keep their own distance from their planet — that gap
+     is the one their orbit is actually made of. */
+  const par=b.parent&&BODIES.find(x=>x.id===b.parent);
+  const sunM=par?par.distM:b.distM;
+  const mm=2*b.radiusKm*MODEL_K*1000;
+  /* b.name is sentence-initial here, so "The Moon" reads correctly */
+  $("sModel").textContent=b.id==="sun"
+    ? "Sol is the beach ball — every one of these worlds orbits something you could hold."
+    : b.name+" comes out "+modelSize(mm)+" across — "+objFor(mm)+" — "
+      +(par?"circling "+par.name+" at "+modelDist(b.distM*1e6*MODEL_K)+", the pair of them "
+          +modelDist(sunM*1e6*MODEL_K)+" from the Sun."
+        :"lying "+modelDist(sunM*1e6*MODEL_K)+" from it.");
+  /* distances. A world's gap to Earth is quoted at closest approach — the
+     two are on the same side of the Sun then, which is when we launch. */
+  const dEarthKm=(b.id==="earth"?0:b.parent==="earth"?b.distM:Math.abs(sunM-AU))*1e6;
+  const rows=[
+    ["Diameter",fmt(b.radiusKm*2)+" km"],
+    ["Sunlight to here",b.id==="sun"?"this is where it starts":dur(sunM*1e6/C_KMS)],
+    ["Radio call to Earth",dEarthKm?dur(dEarthKm/C_KMS)+" each way":"you are here"],
+    ["Airliner from Earth",dEarthKm?dur(dEarthKm/JET_KMH*3600):"—"],
+    ["Once around the equator",fmt(2*Math.PI*b.radiusKm)+" km"],
+    ["…by that same airliner",dur(2*Math.PI*b.radiusKm/JET_KMH*3600)],
+  ];
+  $("scaleRows").innerHTML=rows.map(r=>'<div class="srow"><span class="label"></span><span class="value"></span></div>').join("");
+  const cells=$("scaleRows").children;
+  rows.forEach((r,i)=>{ cells[i].children[0].textContent=r[0]; cells[i].children[1].textContent=r[1]; });
+  $("scaleTitle").textContent=b.name+" · sense of scale";
+}
+function openScale(){ updateScale(); $("scale").hidden=false; $("scaleClose").focus(); }
+function closeScale(){ $("scale").hidden=true; }
+$("scaleBtn").addEventListener("click",openScale);
+$("scaleClose").addEventListener("click",closeScale);
+$("scale").addEventListener("click",e=>{ if(e.target.id==="scale") closeScale(); });
 
 /* ================= survey missions =================
    Clue-driven scavenger hunt: read the clue, work out the world, fly there,
@@ -2271,6 +2714,7 @@ function tick(now){
   prevPos.copy(camera.position);
   updateFlares();
   if(layers.on) updateLayerLabels();
+  if(marks.on) updateMarks();
   renderer.render(scene,camera);
 }
 requestAnimationFrame(tick);
