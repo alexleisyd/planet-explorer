@@ -48,6 +48,23 @@
   #instruments{position:absolute;left:44px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:20px}
   #instruments .cell{border-left:1px solid var(--hairline);padding:2px 0 3px 12px}
   #instruments .label{margin-bottom:5px}
+  #instruments .sub{font-family:var(--mono);font-size:9px;letter-spacing:.12em;color:var(--dim);margin-top:5px;text-transform:uppercase}
+  #instruments .ctl{display:flex;align-items:center;gap:9px;pointer-events:auto}
+  #instruments .ctl .value{min-width:44px}
+  .tick{background:none;border:1px solid var(--hairline);color:var(--chrome);font-family:var(--mono);font-size:11px;line-height:1;width:19px;height:19px;padding:0;cursor:pointer;pointer-events:auto}
+  .tick:hover,.tick:focus-visible{color:var(--amber);border-color:var(--amber)}
+  #layerBtn{margin-top:1px;background:none;border:1px solid var(--hairline);color:var(--chrome);font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;padding:4px 9px;cursor:pointer;pointer-events:auto}
+  #layerBtn:hover,#layerBtn:focus-visible{border-color:var(--amber)}
+  #layerBtn[aria-pressed="true"]{color:var(--amber);border-color:var(--amber)}
+
+  /* science-layer callouts, projected onto the 3D view each frame */
+  #layerLabels{position:absolute;inset:0}
+  /* the chip keeps a callout legible over pale worlds like Uranus, where thin
+     chrome text on cyan all but disappears */
+  .llab{position:absolute;transform:translate(-50%,-50%);font-family:var(--mono);font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink);white-space:nowrap;background:rgba(4,6,10,.62);padding:2px 6px}
+  .llab.hot{color:var(--amber)}
+  .llab.up{transform:translate(-50%,-190%)}
+  .llab[hidden]{display:none}
 
   /* data panel, right */
   #datapanel{position:absolute;right:44px;top:50%;transform:translateY(-50%);width:230px;background:var(--panel);border:1px solid var(--hairline);padding:16px 18px;backdrop-filter:blur(3px);pointer-events:auto}
@@ -139,7 +156,7 @@
   #mlogClose:hover,#mlogClose:focus-visible{color:var(--amber);border-color:var(--amber)}
 
   /* hint + scan overlay */
-  #hint{position:absolute;bottom:34px;left:44px;font-family:var(--mono);font-size:10px;letter-spacing:.14em;color:var(--dim);text-transform:uppercase;transition:opacity 1.2s}
+  #hint{position:absolute;bottom:34px;left:44px;max-width:min(56vw,540px);line-height:1.8;font-family:var(--mono);font-size:10px;letter-spacing:.14em;color:var(--dim);text-transform:uppercase;transition:opacity 1.2s}
   #scan{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.55);opacity:0;transition:opacity .25s;pointer-events:none}
   #scan.on{opacity:1}
   #scan .inner{font-family:var(--mono);font-size:12px;letter-spacing:.3em;color:var(--amber);text-transform:uppercase;border:1px solid var(--hairline);padding:14px 26px;background:var(--panel)}
@@ -190,12 +207,26 @@
       <div class="label">Local rotation</div>
       <span class="value" id="rotVal">—</span><span class="unit">h / day</span>
     </div>
+    <div class="cell">
+      <div class="label">Time warp</div>
+      <div class="ctl">
+        <button class="tick" id="warpDown" aria-label="Slow time down">−</button>
+        <span class="value" id="warpVal">1×</span>
+        <button class="tick" id="warpUp" aria-label="Speed time up">+</button>
+      </div>
+      <div class="sub" id="warpSub">1 s = 6 min here</div>
+    </div>
+    <div class="cell">
+      <div class="label">Science layers</div>
+      <button id="layerBtn" aria-pressed="false">off · key g</button>
+    </div>
   </div>
 
   <div id="datapanel">
     <h3>Body data</h3>
     <div class="row"><span class="label">Eq. radius</span><span class="value" id="dRadius">—</span></div>
     <div class="row"><span class="label">Day length</span><span class="value" id="dDay">—</span></div>
+    <div class="row"><span class="label">Axial tilt</span><span class="value" id="dTilt">—</span></div>
     <div class="row"><span class="label" id="dDistLabel">Dist. from Sol</span><span class="value" id="dDist">—</span></div>
     <h3 class="subhead">You, here</h3>
     <div class="row"><span class="label">Your weight</span><span class="value" id="yWeight">—</span></div>
@@ -227,7 +258,8 @@
     <div class="rail"></div>
   </div>
 
-  <div id="hint">drag to fly &nbsp;·&nbsp; scroll to approach</div>
+  <div id="layerLabels" aria-hidden="true"></div>
+  <div id="hint">drag to fly &nbsp;·&nbsp; scroll to approach &nbsp;·&nbsp; space holds time &nbsp;·&nbsp; g shows the axis</div>
   <div id="scan"><div class="inner" id="scanText">Scanning surface</div></div>
 </div>
 
@@ -326,7 +358,17 @@ const BODIES = [
     fact:"More massive than Pluto; its 2005 discovery forced astronomers to decide what a planet really is — and Pluto lost.",
     dot:{c:"#eef0f2",s:3.5} },
 ];
-const TILTS = {sun:0.13,mercury:0.001,venus:0.05,earth:0.41,moon:0.12,mars:0.44,jupiter:0.05,saturn:0.466,uranus:1.71,neptune:0.49,pluto:1.0,ceres:0.07,haumea:0.25,makemake:0.2,eris:0.7};
+/* how far each body is leaned over when it is built (radians). These are the
+   real obliquities wherever one has been measured — including the two past 90°,
+   which is what "spins backwards" physically means: Venus is tipped 177° and
+   Pluto 123°, so the same positive spin, seen from outside, runs the other way.
+   Haumea, Makemake and Eris have no reliably known pole, so their lean is a
+   plausible guess and TILT_DEG deliberately leaves them out. */
+const TILTS = {sun:0.126,mercury:0.001,venus:3.096,earth:0.409,moon:0.117,mars:0.440,jupiter:0.055,saturn:0.466,uranus:1.706,neptune:0.494,pluto:2.139,ceres:0.070,haumea:0.25,makemake:0.2,eris:0.7};
+/* axial tilt in degrees, measured against each body's own orbit — the number
+   the science layers put on the axis. Every moon here is tidally locked and
+   rides its orbit almost upright; the Moon's 6.7° is the largest of them. */
+const TILT_DEG = {sun:7.25,mercury:0.03,venus:177.4,earth:23.4,moon:6.7,mars:25.2,ceres:4,jupiter:3.1,io:0,europa:0.1,ganymede:0.2,callisto:0.2,saturn:26.7,enceladus:0,titan:0.3,uranus:97.8,neptune:28.3,triton:0,pluto:122.5,charon:0};
 /* surface gravity relative to Earth (gas giants: at the cloud tops) */
 const GRAV = {sun:28.0,mercury:0.38,venus:0.90,earth:1,moon:0.166,mars:0.38,ceres:0.029,jupiter:2.53,io:0.183,europa:0.134,ganymede:0.146,callisto:0.126,saturn:1.06,enceladus:0.0113,titan:0.138,uranus:0.89,neptune:1.14,triton:0.079,pluto:0.063,charon:0.029,haumea:0.040,makemake:0.046,eris:0.084};
 
@@ -1421,7 +1463,9 @@ async function buildBody(b,prog){
   let acc=0;
   const track=w=>p=>P((acc+p*w)/parts);
   const surf=await surfaceTexture(b.id,track(1)); acc+=1;
-  if(jetSpeed){ surf.map.wrapS=THREE.RepeatWrapping; surf.map.needsUpdate=true; } // wind shift samples past the seam
+  /* anything that slides its map in longitude has to sample past the seam:
+     the jet shader, and the Sun, whose whole surface creeps sideways */
+  if(jetSpeed||b.id==="sun"){ surf.map.wrapS=THREE.RepeatWrapping; surf.map.needsUpdate=true; }
   const group=new THREE.Group();
   const mat=(b.id==="sun")?new THREE.MeshBasicMaterial({map:surf.map}):planetMaterial(surf,1,jets,jetSpeed);
   /* displaced terrain needs vertices to push */
@@ -1632,6 +1676,182 @@ for(const[iid,key,lo,hi] of [["pMass","mass",10,200],["pAge","age",1,120]]){
   inp.addEventListener("blur",()=>{ inp.value=pilot[key]; });
 }
 
+/* ================= time warp ================= */
+/* Every world turns on one clock: a full rotation takes dayH*10 seconds, so
+   a second of flight is six minutes of that world's day, whichever world you
+   are at. Warping multiplies that — at 60× a second is six hours, slow enough
+   to keep flying but fast enough to watch a tidally locked moon hold the same
+   face to its planet all the way around, or Venus turn backwards. The
+   companion moons keep the compressed orbital periods in COMPANIONS, so they
+   still lap their planet far faster than this clock says they should. */
+const TIME_STOPS=[0,0.25,1,4,15,60];
+let timeIdx=2, warpResume=2;
+const timeScale=()=>TIME_STOPS[timeIdx];
+function setWarp(i){
+  timeIdx=clamp(Math.round(i),0,TIME_STOPS.length-1);
+  const s=TIME_STOPS[timeIdx];
+  $("warpVal").textContent=s?s+"×":"hold";
+  const min=6*s;  // 1 s at 1× = 0.1 of a body-hour = 6 minutes, on every world
+  const n=v=>v<10?String(+v.toFixed(1)):String(Math.round(v));
+  $("warpSub").textContent=s?"1 s = "+(min<60?n(min)+" min":n(min/60)+" h")+" here":"time held";
+}
+const stepWarp=d=>setWarp(timeIdx+d);
+const holdWarp=()=>{ if(timeIdx===0) setWarp(warpResume); else { warpResume=timeIdx; setWarp(0); } };
+$("warpUp").addEventListener("click",()=>stepWarp(1));
+$("warpDown").addEventListener("click",()=>stepWarp(-1));
+setWarp(timeIdx);
+
+/* ================= science layers ================= */
+/* Switched on with G: a schematic of the target — its spin axis and poles, its
+   equator, and which way it turns — plus, drawn in the Sun's frame rather than
+   the body's, the sub-solar point where the Sun stands straight overhead and
+   the terminator, the sunrise/sunset line every point on the surface rolls
+   through once a day. The axis frame carries the same lean buildBody gives the
+   body, so Uranus lies on its side and Venus hangs upside down. */
+const tiltStr=d=>(d===0?"0":d<1?d.toFixed(2):d.toFixed(1))+"°";
+const LAYER_R=1.05;   // clear of the cloud shell (1.014) and of any relief
+const ARC_MID=0.8;    // where the spin arrow is built before its pivot aims it
+const LAY_HOT=0xffb454, LAY_DIM=0x8b93a3;
+const layers={on:false,group:new THREE.Group(),labels:[],frame:null,spin:null};
+layers.group.visible=false;
+scene.add(layers.group);
+/* points along a circle of latitude, walked in the direction the body spins
+   (rotation.y increasing carries +x toward −z). The cage stays a plain sphere
+   even around Haumea's egg: an ellipse fitted to the egg would swing off the
+   surface as it tumbles, and LAYER_R already clears its long axis. */
+function arcPts(r,y,a0,a1,seg){
+  const p=[];
+  for(let i=0;i<=seg;i++){
+    const a=a0+(a1-a0)*i/seg;
+    p.push(new THREE.Vector3(Math.cos(a)*r,y,-Math.sin(a)*r));
+  }
+  return p;
+}
+function layerLine(pts,color,opacity,loop,seeThrough){
+  const m=new THREE.LineBasicMaterial({color,transparent:true,opacity,depthTest:!seeThrough});
+  const g=new THREE.BufferGeometry().setFromPoints(pts);
+  return loop?new THREE.LineLoop(g,m):new THREE.Line(g,m);
+}
+function buildLayers(b,spinRate){
+  const g=layers.group;
+  while(g.children.length) g.remove(g.children[0]);
+  for(const l of layers.labels) l.el.remove();
+  layers.labels=[];
+  /* `through`: stays legible even on the far side, for the parts of the
+     schematic that are themselves drawn through the body */
+  const label=(text,hot,up,through,get)=>{
+    const el=document.createElement("div");
+    el.className="llab"+(hot?" hot":"")+(up?" up":"");
+    el.textContent=text; el.hidden=true;
+    $("layerLabels").appendChild(el);
+    layers.labels.push({el,get,through});
+  };
+  /* --- the body's own frame: axis, poles, equator, spin --- */
+  const bf=new THREE.Group();
+  bf.rotation.z=-(TILTS[b.id]||0);   // the lean buildBody gives the body
+  layers.frame=bf; g.add(bf);
+  const AX=1.75;
+  bf.add(layerLine([new THREE.Vector3(0,-AX,0),new THREE.Vector3(0,AX,0)],LAY_HOT,0.7,false,true));
+  bf.add(layerLine(arcPts(LAYER_R,0,0,Math.PI*2*(1-1/160),160),LAY_DIM,0.85,true));
+  /* which way it turns: an arc at mid-latitude with a head on the leading end.
+     It hangs off a pivot that keeps it facing the camera (ARC_MID below), so
+     the arrow is readable from wherever you are flying. */
+  const ay=0.62, ar=Math.sqrt(Math.max(LAYER_R*LAYER_R-ay*ay,0.01));
+  const spin=new THREE.Group(); bf.add(spin);
+  layers.spin=spin;
+  const arc=arcPts(ar,ay,ARC_MID-0.45,ARC_MID+0.45,24);
+  if(spinRate<0) arc.reverse();      // Triton: locked to a backwards orbit
+  const tip=arc[arc.length-1], prev=arc[arc.length-2];
+  const dir=tip.clone().sub(prev).normalize(), side=dir.clone().cross(tip).normalize();
+  const back=tip.clone().addScaledVector(dir,-0.16);
+  spin.add(layerLine(arc,LAY_DIM,0.8));
+  spin.add(layerLine([back.clone().addScaledVector(side,0.055),tip,back.clone().addScaledVector(side,-0.055)],LAY_DIM,0.8));
+
+  const td=TILT_DEG[b.id];
+  /* every moon in the catalogue is tidally locked — buildBody spins each one
+     exactly once per orbit — which is why they are all upright to begin with */
+  const tiltTxt=(td==null?"":" · tilt "+tiltStr(td))+(b.parent?" · locked":"");
+  const np=new THREE.Object3D(); np.position.set(0,AX+0.14,0); bf.add(np);
+  const sp=new THREE.Object3D(); sp.position.set(0,-AX-0.14,0); bf.add(sp);
+  label("N"+tiltTxt,true,false,true,v=>np.getWorldPosition(v));
+  label("S",true,false,true,v=>sp.getWorldPosition(v));
+  const at=new THREE.Object3D(); at.position.copy(tip); spin.add(at);
+  /* a tilt past 90° means the body turns the other way to everything else —
+     but Uranus at 98° reads as rolled onto its side, not truly reversed, so
+     only the badly flipped ones (Venus, and Triton's backwards orbit) get
+     called backwards */
+  label(spinRate<0||td>135?"spin · backwards":(td>90?"spin · tipped over":"spin"),
+    false,true,false,v=>at.getWorldPosition(v));
+  /* the equator label rides around to whichever side of the ring faces you */
+  label("equator",false,false,false,v=>nearestOnCircle(v,axisOf(bf)));
+
+  /* --- the Sun's frame: sub-solar point and terminator --- */
+  if(b.id!=="sun"){
+    const sf=new THREE.Group();
+    sf.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),SUN_DIR); // +y points at the Sun
+    g.add(sf);
+    sf.add(layerLine(arcPts(LAYER_R,0,0,Math.PI*2*(1-1/160),160),LAY_DIM,0.85,true));
+    sf.add(layerLine(arcPts(0.07,LAYER_R,0,Math.PI*2*(1-1/32),32),LAY_HOT,0.9,true,true));
+    const ss=new THREE.Object3D(); ss.position.set(0,LAYER_R,0); sf.add(ss);
+    label("sub-solar · noon",true,true,false,v=>ss.getWorldPosition(v));
+    label("terminator · day / night",false,false,false,v=>nearestOnCircle(v,SUN_DIR));
+  }
+  if(layers.on) updateLayerLabels();
+}
+/* the world-space spin axis of a tilted frame */
+const _lax=new THREE.Vector3(), _lq=new THREE.Quaternion();
+const axisOf=f=>_lax.set(0,1,0).applyQuaternion(f.getWorldQuaternion(_lq));
+/* the point of the great circle around `axis` that faces the camera — so a
+   ring's label always lands on the near side of the body */
+function nearestOnCircle(out,axis){
+  out.copy(camera.position).addScaledVector(axis,-camera.position.dot(axis));
+  if(out.lengthSq()<1e-6) out.set(1,0,0);          // looking straight down the axis
+  return out.normalize().multiplyScalar(LAYER_R);
+}
+const _lv=new THREE.Vector3(), _lp=new THREE.Vector3();
+function updateLayerLabels(){
+  layers.group.updateMatrixWorld(true);
+  if(layers.spin){
+    /* swing the spin arrow round to the side you are looking at: the angle of
+       the camera in the body's frame, less where the arc was built */
+    const c=layers.frame.worldToLocal(_lv.copy(camera.position));
+    layers.spin.rotation.y=Math.atan2(-c.z,c.x)-ARC_MID;
+    layers.group.updateMatrixWorld(true);
+  }
+  const w=innerWidth, h=innerHeight;
+  for(const l of layers.labels){
+    const p=l.get(_lv);
+    /* a point on a sphere of radius 1 is over the horizon when p·camera > 1;
+       the body itself hides everything on the far side */
+    const seen=l.through||p.dot(camera.position)>1;
+    _lp.copy(p).project(camera);
+    const on=seen&&_lp.z<1;
+    l.el.hidden=!on;
+    if(on){
+      l.el.style.left=((_lp.x*0.5+0.5)*w).toFixed(1)+"px";
+      l.el.style.top=((-_lp.y*0.5+0.5)*h).toFixed(1)+"px";
+    }
+  }
+}
+function setLayers(on){
+  layers.on=on;
+  layers.group.visible=on;
+  const btn=$("layerBtn");
+  btn.setAttribute("aria-pressed",on?"true":"false");
+  btn.textContent=on?"on · key g":"off · key g";
+  if(on) updateLayerLabels();
+  else for(const l of layers.labels) l.el.hidden=true;
+}
+$("layerBtn").addEventListener("click",()=>setLayers(!layers.on));
+addEventListener("keydown",e=>{
+  if(e.target.tagName==="INPUT") return;                    // typing a pilot value
+  if(e.key===" "&&e.target.tagName==="BUTTON") return;      // space is activating a button
+  if(e.key==="g"||e.key==="G"){ setLayers(!layers.on); hideHint(); }
+  else if(e.key===" "){ e.preventDefault(); holdWarp(); hideHint(); }
+  else if(e.key==="]"||e.key==="+"||e.key==="="){ stepWarp(1); hideHint(); }
+  else if(e.key==="["||e.key==="-"){ stepWarp(-1); hideHint(); }
+});
+
 let reqSeq=0;
 async function setTarget(id){
   const b=BODIES.find(x=>x.id===id);
@@ -1657,11 +1877,14 @@ async function setTarget(id){
   $("bodyClass").textContent=b.cls;
   $("dRadius").textContent=fmt(b.radiusKm)+" km";
   $("dDay").textContent=b.dayH.toLocaleString("en-US")+" h";
+  const td=TILT_DEG[b.id];
+  $("dTilt").textContent=td==null?"not measured":tiltStr(td);
   $("dDistLabel").textContent=b.distLabel||"Dist. from Sol";
   $("dDist").textContent=b.distM?(b.distM>=1?b.distM.toLocaleString("en-US")+" M km":Math.round(b.distM*1e6).toLocaleString("en-US")+" km"):"—";
   $("rotVal").textContent=b.dayH.toLocaleString("en-US");
   $("factline").textContent=b.fact;
   updateYou();
+  buildLayers(b,bd.spinRate);
   document.querySelectorAll(".mapdot").forEach(el=>el.setAttribute("aria-pressed",el.dataset.id===id));
   refreshOrrerySel();
   ctl.tDist=clamp(ctl.tDist,MIN_D,MAX_D);
@@ -1965,10 +2188,20 @@ function resize(){
 }
 addEventListener("resize",resize); resize();
 
-let prevPos=new THREE.Vector3(), speedSmooth=0, last=performance.now();
+let prevPos=new THREE.Vector3(), speedSmooth=0, last=performance.now(), aclock=0;
 function tick(now){
   requestAnimationFrame(tick);
   const dt=Math.min((now-last)/1000,0.05); last=now;
+  /* two clocks: dt is real time — the camera, the survey hold — while adt is
+     the warped world clock every spin, orbit and eruption runs on. */
+  const adt=dt*timeScale();
+  aclock+=adt;
+  /* the winds are the exception: they are already exaggerated far past the
+     spin clock (Jupiter's jets lap the planet twice a Jovian day), and the
+     shear lanes between counterflowing bands smear the cloud texture in
+     proportion to elapsed jetTime — so the wind only feels the first stop or
+     two of warp instead of running 60× and grinding itself to mush. */
+  const wdt=dt*Math.min(timeScale(),2);
 
   /* keyboard nudges */
   const ks=1.7*dt*rotScale();
@@ -1994,27 +2227,27 @@ function tick(now){
 
   if(current){
     const bd=built[current.id];
-    bd.spinGroup.rotation.y+=dt*bd.spinRate;
-    if(bd.cloudMesh) bd.cloudMesh.rotation.y+=dt*0.006;
+    bd.spinGroup.rotation.y+=adt*bd.spinRate;
+    if(bd.cloudMesh) bd.cloudMesh.rotation.y+=adt*0.006;
     /* Jupiter/Neptune: the jets flow in the shader; the great spots
        (Red, Dark) drift slowly westward as rigid storms on their overlays */
-    if(bd.mat.userData.shader) bd.mat.userData.shader.uniforms.jetTime.value+=dt;
-    if(bd.spotMesh) bd.spotMesh.rotation.y-=dt*0.012;
+    if(bd.mat.userData.shader) bd.mat.userData.shader.uniforms.jetTime.value+=wdt;
+    if(bd.spotMesh) bd.spotMesh.rotation.y-=adt*0.012;
     /* the host planet backdrop turns and its winds blow too */
-    if(bd.parentSpin) bd.parentSpin.rotation.y+=dt*bd.parentSpinRate;
-    if(bd.parentCloud) bd.parentCloud.rotation.y+=dt*0.006;
-    if(bd.parentMat&&bd.parentMat.userData.shader) bd.parentMat.userData.shader.uniforms.jetTime.value+=dt;
+    if(bd.parentSpin) bd.parentSpin.rotation.y+=adt*bd.parentSpinRate;
+    if(bd.parentCloud) bd.parentCloud.rotation.y+=adt*0.006;
+    if(bd.parentMat&&bd.parentMat.userData.shader) bd.parentMat.userData.shader.uniforms.jetTime.value+=wdt;
     /* …and it circles the moon's sky as the moon rides its orbit */
     if(bd.parentOrbit){
       const o=bd.parentOrbit;
-      o.a+=dt*(2*Math.PI)/o.T;
+      o.a=(o.a+adt*(2*Math.PI)/o.T)%(2*Math.PI);
       o.pg.position.set(Math.cos(o.a),0,-Math.sin(o.a)).applyEuler(o.e).multiplyScalar(o.dist);
     }
-    if(bd.moonPivots) for(const m of bd.moonPivots) m.pivot.rotation.y+=dt*(2*Math.PI)/m.T;
+    if(bd.moonPivots) for(const m of bd.moonPivots) m.pivot.rotation.y+=adt*(2*Math.PI)/m.T;
 
     if(current.id==="sun"){
-      bd.mat.map.offset.x+=dt*0.0035;
-      const t=now/1000;
+      bd.mat.map.offset.x=(bd.mat.map.offset.x+adt*0.0035)%1; // seamless: the map repeats in longitude
+      const t=aclock;
       for(const pr of bd.proms){
         const breathe=0.55+0.45*Math.sin(t*2*Math.PI/pr.T+pr.p);
         const burst=Math.pow(Math.max(0,Math.sin(t*2*Math.PI/pr.T2+pr.p2)),8); // rare full eruptions
@@ -2037,6 +2270,7 @@ function tick(now){
   }
   prevPos.copy(camera.position);
   updateFlares();
+  if(layers.on) updateLayerLabels();
   renderer.render(scene,camera);
 }
 requestAnimationFrame(tick);
