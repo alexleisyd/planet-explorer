@@ -21,6 +21,7 @@ works, so the HUD never gets in the way of the world behind it.
 | `N` / `landmarks` | Name the landmarks on this world |
 | `X` / `sense of scale` | Open "sense of scale" |
 | `H` / `◐ hide hud` | Fold the whole HUD away, leaving just the world |
+| `F` / `⤢ full screen` | Fill the screen, browser chrome and all |
 | Bottom strip | Tap a dot to set course; moons stack above their parent planet |
 | Strip background / `⤢ orbital plot` | Open the live 2D system map |
 | `⬡ captain's log` | Open the survey-badge log |
@@ -31,7 +32,11 @@ works, so the HUD never gets in the way of the world behind it.
 
 The game is built for iPad first. One finger flies, two fingers pinch to
 change range, and every keyboard shortcut also has a button, so nothing needs
-a keyboard. Controls grow to finger size on a touch screen, and the layout
+a keyboard. `⤢ full screen` drops Safari's own chrome as well (iPadOS 16.4 and
+later); adding the page to your home screen gets the same thing permanently,
+and the button steps aside there since there is nothing left to hide.
+
+Controls grow to finger size on a touch screen, and the layout
 reflows: in landscape the instruments stay down the left edge, and in portrait
 — where an iPad is only ~820px wide and a side column would sit squarely on
 the planet — they drop into a console along the bottom with the data panel

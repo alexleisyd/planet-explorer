@@ -40,7 +40,7 @@
   #hud{position:fixed;inset:0;pointer-events:none;user-select:none;touch-action:none}
   /* the whole HUD folds away on the h key / hud button, so a finger drag over
      a bare globe is the default way to look at a world */
-  #hud.hidden>*:not(#scan):not(#stamp):not(#hudBtn){opacity:0;pointer-events:none;transition:opacity .3s}
+  #hud.hidden>*:not(#scan):not(#stamp):not(#viewbtns){opacity:0;pointer-events:none;transition:opacity .3s}
   .corner{position:absolute;width:26px;height:26px;border:1px solid var(--hairline)}
   .corner.tl{top:max(18px,env(safe-area-inset-top));left:max(18px,env(safe-area-inset-left));border-right:0;border-bottom:0}
   .corner.tr{top:max(18px,env(safe-area-inset-top));right:max(18px,env(safe-area-inset-right));border-left:0;border-bottom:0}
@@ -78,12 +78,18 @@
   .ovbtn:disabled{opacity:.35;cursor:default;border-color:var(--hairline);color:var(--chrome)}
   .k{font-style:normal}            /* the "· key g" tail, dropped where there is no room */
 
-  /* hide-the-chrome toggle — parked under the target block, the one patch of
-     sky no panel ever wants, so it stays in the same place at every size and
-     stays reachable when everything else has folded away */
-  #hudBtn{position:absolute;left:var(--edgeL);top:calc(var(--edgeT) + var(--hudBtnY));background:none;border:1px solid var(--hairline);color:var(--dim);font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;padding:6px 10px;cursor:pointer;pointer-events:auto}
-  #hudBtn:hover,#hudBtn:focus-visible{color:var(--amber);border-color:var(--amber)}
+  /* view controls — parked under the target block, the one patch of sky no
+     panel ever wants, so they stay in the same place at every size. The pair
+     survives `#hud.hidden` so there is always a way back from a bare globe,
+     but only the hud toggle stays visible there. Keep them on one row:
+     stacking them pushes #instruments, which hangs off --hudBtnY in short
+     landscape, down past what a 690px-tall iPad has left. */
+  #viewbtns{position:absolute;left:var(--edgeL);top:calc(var(--edgeT) + var(--hudBtnY));display:flex;align-items:flex-start;gap:6px}
+  #hudBtn,#fsBtn{background:none;border:1px solid var(--hairline);color:var(--dim);font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;padding:6px 10px;cursor:pointer;pointer-events:auto}
+  #hudBtn:hover,#hudBtn:focus-visible,#fsBtn:hover,#fsBtn:focus-visible{color:var(--amber);border-color:var(--amber)}
+  #fsBtn[hidden]{display:none}     /* no Fullscreen API, or already a standalone app */
   #hud.hidden #hudBtn{opacity:.55}
+  #hud.hidden #fsBtn{display:none}
 
   /* science-layer callouts, projected onto the 3D view each frame */
   #layerLabels,#markLabels{position:absolute;inset:0}
@@ -264,7 +270,7 @@
     .tick::after{content:"";position:absolute;inset:-6px}
     #instruments .ctl{gap:12px}
     .ovbtn{padding:11px 13px;font-size:11px;margin-top:7px}
-    #hudBtn{padding:11px 13px;font-size:11px}
+    #hudBtn,#fsBtn{padding:11px 13px;font-size:11px}
     #mLogBtn,#dataHead{padding:9px 0}
     #scaleClose,#mlogClose,#orreryClose{width:42px;height:42px;font-size:15px}
     .mapdot{padding:16px}
@@ -296,7 +302,7 @@
     #instruments .cell.ov{position:absolute;left:0;right:0;bottom:calc(100% + 14px);border-left:0;padding:0;display:flex;flex-wrap:wrap;gap:8px}
     #instruments .cell.ov .label{display:none}
     .ovbtn{margin:0}
-    .ovbtn .k,#hudBtn .k{display:none}   /* the key tails cost width this layout does not have */
+    .ovbtn .k,#hudBtn .k,#fsBtn .k{display:none}   /* the key tails cost width this layout does not have */
 
     /* the hint moves up too — the bottom console has taken its old strip */
     #hint{top:calc(var(--edgeT) + 180px);left:var(--edgeL);right:var(--edgeR);bottom:auto;max-width:none;text-align:center}
@@ -330,7 +336,7 @@
     #instruments .cell.ov{position:absolute;top:calc(100% + 28px);left:0;width:max-content;border-left:0;padding:0;display:flex;gap:8px}
     #instruments .cell.ov .label{display:none}
     .ovbtn{margin:0}
-    .ovbtn .k,#hudBtn .k{display:none}
+    .ovbtn .k,#hudBtn .k,#fsBtn .k{display:none}
     /* the hint pulls into the gap between the two columns: the instrument
        stack now reaches almost to the strip on this little height */
     /* 246px clears the widest the data panel gets (230px) plus its own inset */
@@ -396,7 +402,10 @@
     </div>
   </div>
 
-  <button id="hudBtn" aria-pressed="false"><span id="hudBtnLabel">◐ hide hud</span><i class="k"> · key h</i></button>
+  <div id="viewbtns">
+    <button id="hudBtn" aria-pressed="false"><span id="hudBtnLabel">◐ hide hud</span><i class="k"> · key h</i></button>
+    <button id="fsBtn" aria-pressed="false" hidden><span id="fsBtnLabel">⤢ full screen</span><i class="k"> · key f</i></button>
+  </div>
 
   <div id="datapanel">
     <h3 class="dhead"><button id="dataHead" aria-expanded="true" aria-controls="dataBody">Body data<span class="chev">▾</span></button></h3>
@@ -438,7 +447,7 @@
 
   <div id="layerLabels" aria-hidden="true"></div>
   <div id="markLabels" aria-hidden="true"></div>
-  <div id="hint">drag to fly &nbsp;·&nbsp; scroll to approach &nbsp;·&nbsp; space holds time &nbsp;·&nbsp; g shows the axis &nbsp;·&nbsp; n names the landmarks &nbsp;·&nbsp; x for scale</div>
+  <div id="hint">drag to fly &nbsp;·&nbsp; scroll to approach &nbsp;·&nbsp; space holds time &nbsp;·&nbsp; g shows the axis &nbsp;·&nbsp; n names the landmarks &nbsp;·&nbsp; x for scale &nbsp;·&nbsp; f for full screen</div>
   <div id="scan"><div class="inner" id="scanText">Scanning surface</div></div>
 </div>
 
@@ -2115,6 +2124,45 @@ function setHud(on){
 }
 $("hudBtn").addEventListener("click",()=>setHud(hudOff));
 
+/* full screen — the other half of getting the world out from under the chrome,
+   this time the browser's own. iPadOS has had the Fullscreen API on ordinary
+   elements since 16.4 (iPhone since Safari 17.2); older WebKit needs the
+   prefix, and inside an iframe it can be disallowed outright. Rather than
+   leave a dead control, the button only appears where it will actually work —
+   and not at all in a home-screen web app, which has no chrome to shed. */
+let toggleFull=()=>{};
+{
+  const root=document.documentElement;
+  const req=root.requestFullscreen||root.webkitRequestFullscreen;
+  const exit=document.exitFullscreen||document.webkitExitFullscreen;
+  const isFull=()=>!!(document.fullscreenElement||document.webkitFullscreenElement);
+  const allowed=document.fullscreenEnabled??document.webkitFullscreenEnabled??false;
+  const standalone=matchMedia("(display-mode: standalone)").matches||navigator.standalone===true;
+  const fsBtn=$("fsBtn");
+
+  if(req&&exit&&allowed&&!standalone){
+    fsBtn.hidden=false;
+    /* the browser can leave full screen on its own — Esc, a system gesture, a
+       swipe between apps — so the label follows the event, never the click */
+    const sync=()=>{
+      const on=isFull();
+      fsBtn.setAttribute("aria-pressed",String(on));
+      $("fsBtnLabel").textContent=on?"⤡ exit full screen":"⤢ full screen";
+    };
+    toggleFull=()=>{
+      /* the request rejects if the gesture went stale or the user declined —
+         and the prefixed WebKit forms return nothing at all, hence the two
+         optional calls. Either way there is nothing to recover from beyond
+         putting the label back in step. */
+      const p=isFull()?exit.call(document):req.call(root);
+      p?.catch?.(sync);
+    };
+    fsBtn.addEventListener("click",toggleFull);
+    for(const ev of ["fullscreenchange","webkitfullscreenchange"]) addEventListener(ev,sync);
+    sync();
+  }
+}
+
 /* the data panel folds to its heading; on a narrow screen it starts folded so
    the first thing you see is the planet, not the numbers */
 const dataPanel=$("datapanel");
@@ -2133,7 +2181,7 @@ function setData(open){
 /* the instructions name gestures on touch and keys on a desktop — an iPad has
    no Esc, and every overlay here also closes on a tap outside it */
 if(coarse){
-  $("hint").innerHTML="drag to fly &nbsp;·&nbsp; pinch to approach &nbsp;·&nbsp; tap a world below &nbsp;·&nbsp; ‖ holds time &nbsp;·&nbsp; ◐ clears the hud";
+  $("hint").innerHTML="drag to fly &nbsp;·&nbsp; pinch to approach &nbsp;·&nbsp; tap a world below &nbsp;·&nbsp; ‖ holds time &nbsp;·&nbsp; ◐ clears the hud &nbsp;·&nbsp; ⤢ fills the screen";
   $("orreryHint").innerHTML="tap a body to set course &nbsp;·&nbsp; tap outside to close";
   $("scaleFoot").innerHTML="distances to Earth are quoted at closest approach &nbsp;·&nbsp; airliner at 900 km/h &nbsp;·&nbsp; tap outside to close";
 }
@@ -2427,6 +2475,7 @@ addEventListener("keydown",e=>{
   else if(e.key==="n"||e.key==="N"){ setMarks(!marks.want); hideHint(); }
   else if(e.key==="x"||e.key==="X"){ $("scale").hidden?openScale():closeScale(); hideHint(); }
   else if(e.key==="h"||e.key==="H"){ setHud(hudOff); hideHint(); }
+  else if(e.key==="f"||e.key==="F"){ toggleFull(); hideHint(); }
   else if(e.key===" "){ e.preventDefault(); holdWarp(); hideHint(); }
   else if(e.key==="]"||e.key==="+"||e.key==="="){ stepWarp(1); hideHint(); }
   else if(e.key==="["||e.key==="-"){ stepWarp(-1); hideHint(); }
