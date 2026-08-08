@@ -2,7 +2,9 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
 <title>Planet Explorer</title>
 <style>
   :root{
@@ -14,20 +16,36 @@
     --panel:rgba(10,13,18,.55);
     --mono:"SF Mono", ui-monospace, Menlo, Consolas, monospace;
     --sans:"Avenir Next", "Helvetica Neue", Helvetica, Arial, sans-serif;
+    /* every panel is inset by --edge, so one number moves the whole HUD off
+       the globe; env() keeps it clear of a rounded corner or home indicator */
+    --edge:44px;
+    --edgeL:max(var(--edge), env(safe-area-inset-left));
+    --edgeR:max(var(--edge), env(safe-area-inset-right));
+    --edgeT:max(34px, env(safe-area-inset-top));
+    --edgeB:max(34px, env(safe-area-inset-bottom));
+    --strip:74px;              /* height of the bottom selector strip */
+    --railY:38px;              /* where the planet rail sits inside it */
+    --console:130px;           /* what the portrait bottom console stacks above the strip */
+    --hudBtnY:100px;           /* clears the target block, whose name scales with the viewport */
   }
   *{margin:0;padding:0;box-sizing:border-box}
-  html,body{height:100%;overflow:hidden;background:#000}
-  body{font-family:var(--sans);color:var(--chrome);-webkit-font-smoothing:antialiased}
-  canvas#scene{display:block;width:100%;height:100%;cursor:grab}
+  html,body{height:100%;overflow:hidden;background:#000;overscroll-behavior:none}
+  body{font-family:var(--sans);color:var(--chrome);-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent}
+  /* touch-action:none is what makes a finger drag fly the craft instead of
+     panning/zooming the page — Safari otherwise swallows the gesture */
+  canvas#scene{display:block;width:100%;height:100%;cursor:grab;touch-action:none}
   canvas#scene.dragging{cursor:grabbing}
 
   /* ---------- HUD chrome ---------- */
-  #hud{position:fixed;inset:0;pointer-events:none;user-select:none}
+  #hud{position:fixed;inset:0;pointer-events:none;user-select:none;touch-action:none}
+  /* the whole HUD folds away on the h key / hud button, so a finger drag over
+     a bare globe is the default way to look at a world */
+  #hud.hidden>*:not(#scan):not(#stamp):not(#hudBtn){opacity:0;pointer-events:none;transition:opacity .3s}
   .corner{position:absolute;width:26px;height:26px;border:1px solid var(--hairline)}
-  .corner.tl{top:18px;left:18px;border-right:0;border-bottom:0}
-  .corner.tr{top:18px;right:18px;border-left:0;border-bottom:0}
-  .corner.bl{bottom:18px;left:18px;border-right:0;border-top:0}
-  .corner.br{bottom:18px;right:18px;border-left:0;border-top:0}
+  .corner.tl{top:max(18px,env(safe-area-inset-top));left:max(18px,env(safe-area-inset-left));border-right:0;border-bottom:0}
+  .corner.tr{top:max(18px,env(safe-area-inset-top));right:max(18px,env(safe-area-inset-right));border-left:0;border-bottom:0}
+  .corner.bl{bottom:max(18px,env(safe-area-inset-bottom));left:max(18px,env(safe-area-inset-left));border-right:0;border-top:0}
+  .corner.br{bottom:max(18px,env(safe-area-inset-bottom));right:max(18px,env(safe-area-inset-right));border-left:0;border-top:0}
 
   #crosshair{position:absolute;top:50%;left:50%;width:22px;height:22px;transform:translate(-50%,-50%);opacity:.5}
   #crosshair::before,#crosshair::after{content:"";position:absolute;background:var(--chrome)}
@@ -39,13 +57,13 @@
   .unit{font-size:10px;color:var(--chrome);margin-left:4px;letter-spacing:.08em}
 
   /* target block, top-left */
-  #target{position:absolute;top:34px;left:44px;max-width:46vw}
+  #target{position:absolute;top:var(--edgeT);left:var(--edgeL);max-width:46vw}
   #target .label{margin-bottom:8px}
   #bodyName{font-size:clamp(26px,4.4vw,44px);font-weight:500;letter-spacing:.14em;color:var(--ink);text-transform:uppercase;line-height:1}
   #bodyClass{font-family:var(--mono);font-size:11px;letter-spacing:.18em;color:var(--chrome);margin-top:9px;text-transform:uppercase}
 
   /* live instruments, left edge */
-  #instruments{position:absolute;left:44px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:20px}
+  #instruments{position:absolute;left:var(--edgeL);top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:20px}
   #instruments .cell{border-left:1px solid var(--hairline);padding:2px 0 3px 12px}
   #instruments .label{margin-bottom:5px}
   #instruments .sub{font-family:var(--mono);font-size:9px;letter-spacing:.12em;color:var(--dim);margin-top:5px;text-transform:uppercase}
@@ -53,10 +71,19 @@
   #instruments .ctl .value{min-width:44px}
   .tick{background:none;border:1px solid var(--hairline);color:var(--chrome);font-family:var(--mono);font-size:11px;line-height:1;width:19px;height:19px;padding:0;cursor:pointer;pointer-events:auto}
   .tick:hover,.tick:focus-visible{color:var(--amber);border-color:var(--amber)}
+  .tick[aria-pressed="true"]{color:var(--amber);border-color:var(--amber)}
   .ovbtn{display:block;margin-top:5px;background:none;border:1px solid var(--hairline);color:var(--chrome);font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;padding:4px 9px;cursor:pointer;pointer-events:auto}
   .ovbtn:hover,.ovbtn:focus-visible{border-color:var(--amber)}
   .ovbtn[aria-pressed="true"]{color:var(--amber);border-color:var(--amber)}
   .ovbtn:disabled{opacity:.35;cursor:default;border-color:var(--hairline);color:var(--chrome)}
+  .k{font-style:normal}            /* the "· key g" tail, dropped where there is no room */
+
+  /* hide-the-chrome toggle — parked under the target block, the one patch of
+     sky no panel ever wants, so it stays in the same place at every size and
+     stays reachable when everything else has folded away */
+  #hudBtn{position:absolute;left:var(--edgeL);top:calc(var(--edgeT) + var(--hudBtnY));background:none;border:1px solid var(--hairline);color:var(--dim);font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;padding:6px 10px;cursor:pointer;pointer-events:auto}
+  #hudBtn:hover,#hudBtn:focus-visible{color:var(--amber);border-color:var(--amber)}
+  #hud.hidden #hudBtn{opacity:.55}
 
   /* science-layer callouts, projected onto the 3D view each frame */
   #layerLabels,#markLabels{position:absolute;inset:0}
@@ -79,7 +106,7 @@
   .mlab[hidden]{display:none}
 
   /* data panel, right */
-  #datapanel{position:absolute;right:44px;top:50%;transform:translateY(-50%);width:230px;background:var(--panel);border:1px solid var(--hairline);padding:16px 18px;backdrop-filter:blur(3px);pointer-events:auto}
+  #datapanel{position:absolute;right:var(--edgeR);top:50%;transform:translateY(-50%);width:230px;background:var(--panel);border:1px solid var(--hairline);padding:16px 18px;backdrop-filter:blur(3px);pointer-events:auto}
   #datapanel h3{font-size:10px;letter-spacing:.22em;color:var(--dim);font-weight:600;margin-bottom:12px;text-transform:uppercase}
   #datapanel h3.subhead{margin:14px 0 4px;color:var(--amber)}
   #datapanel input{width:36px;background:none;border:0;border-bottom:1px solid var(--hairline);color:var(--amber);font-family:var(--mono);font-size:12px;text-align:right;-moz-appearance:textfield}
@@ -89,13 +116,22 @@
   #datapanel .row .label{letter-spacing:.14em}
   #datapanel .row .value{font-size:12px;color:var(--ink);white-space:nowrap;margin-left:8px}
   #factline{margin-top:12px;padding-top:10px;border-top:1px solid rgba(139,147,163,.14);font-size:11.5px;line-height:1.6;color:var(--chrome);letter-spacing:.02em}
-  #scaleBtn{margin-top:12px;background:none;border:0;padding:0;font-family:var(--sans);font-size:9px;letter-spacing:.26em;color:var(--dim);text-transform:uppercase;cursor:pointer}
-  #scaleBtn:hover,#scaleBtn:focus-visible{color:var(--amber)}
+  /* the panel folds to its own heading so a small screen keeps the data
+     without keeping it over the globe — the button lives inside the heading so
+     the heading stays a heading in the accessibility tree */
+  #datapanel h3.dhead{margin-bottom:0}
+  #dataHead{display:flex;justify-content:space-between;align-items:center;width:100%;background:none;border:0;padding:0;cursor:pointer;
+            font:inherit;color:inherit;letter-spacing:inherit;text-transform:inherit;pointer-events:auto}
+  #dataHead .chev{font-family:var(--mono);font-size:11px;color:var(--dim);transition:transform .2s}
+  #datapanel[data-collapsed] #dataHead .chev{transform:rotate(-90deg)}
+  #dataHead:hover,#dataHead:focus-visible,#dataHead:hover .chev{color:var(--amber)}
+  #dataBody{margin-top:12px}
+  #datapanel[data-collapsed] #dataBody{display:none}
 
   /* sense-of-scale overlay */
   #scale{position:fixed;inset:0;background:rgba(4,6,10,.82);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;z-index:11}
   #scale[hidden]{display:none}
-  #scalePanel{position:relative;width:min(820px,92vw);max-height:88vh;overflow:auto;background:var(--panel);border:1px solid var(--hairline);padding:26px 28px 20px}
+  #scalePanel{position:relative;width:min(820px,92vw);max-height:88vh;overflow:auto;-webkit-overflow-scrolling:touch;touch-action:pan-y;background:var(--panel);border:1px solid var(--hairline);padding:26px 28px 20px}
   #scaleTitle{font-size:10px;letter-spacing:.26em;color:var(--dim);text-transform:uppercase}
   #scaleClose{position:absolute;top:14px;right:14px;background:none;border:1px solid var(--hairline);color:var(--chrome);font-family:var(--mono);font-size:12px;width:26px;height:26px;cursor:pointer}
   #scaleClose:hover,#scaleClose:focus-visible{color:var(--amber);border-color:var(--amber)}
@@ -112,12 +148,14 @@
   @media (max-width:700px){ #scaleGrid{grid-template-columns:1fr} }
 
   /* system map strip, bottom — the planet selector */
-  #systemmap{position:absolute;left:50%;bottom:34px;transform:translateX(-50%);width:min(860px,86vw);height:74px;pointer-events:auto}
-  #systemmap .rail{position:absolute;left:0;right:0;top:38px;height:1px;background:var(--hairline)}
-  .mapdot{position:absolute;top:38px;transform:translate(-50%,-50%);background:none;border:0;cursor:pointer;padding:14px;pointer-events:auto}
+  #systemmap{position:absolute;left:50%;bottom:var(--edgeB);transform:translateX(-50%);width:min(860px,86vw);height:var(--strip);pointer-events:auto}
+  #systemmap .rail{position:absolute;left:0;right:0;top:var(--railY);height:1px;background:var(--hairline)}
+  .mapdot{position:absolute;top:var(--railY);transform:translate(-50%,-50%);background:none;border:0;cursor:pointer;padding:14px;pointer-events:auto}
   .mapdot .disc{display:block;border-radius:50%;transition:box-shadow .18s}
   .mapdot .name{position:absolute;top:calc(100% - 8px);left:50%;transform:translateX(-50%);font-size:9px;letter-spacing:.2em;color:var(--dim);text-transform:uppercase;white-space:nowrap;opacity:0;transition:opacity .15s;font-family:var(--sans)}
-  .mapdot:hover .name,.mapdot:focus-visible .name{opacity:1}
+  /* :active is the touch stand-in for :hover — the name shows under the
+     finger before the tap commits to a new target */
+  .mapdot:hover .name,.mapdot:focus-visible .name,.mapdot:active .name{opacity:1}
   .mapdot:focus-visible{outline:1px solid var(--amber);outline-offset:-6px}
   .mapdot.surveyed .disc{box-shadow:0 0 0 2px rgba(0,0,0,.6),0 0 0 3px rgba(255,180,84,.45)} /* thin ring: surveyed */
   .mapdot[aria-pressed="true"] .disc{box-shadow:0 0 0 3px rgba(0,0,0,.6),0 0 0 4px var(--amber)}
@@ -148,7 +186,7 @@
   #orrery .obody:hover>.sublabel,#orrery .obody:focus-visible>.sublabel,#orrery .obody.sel>.sublabel{visibility:visible}
 
   /* mission card, top-right */
-  #mission{position:absolute;top:34px;right:44px;width:250px;background:var(--panel);border:1px solid var(--hairline);padding:14px 16px 12px;backdrop-filter:blur(3px);pointer-events:auto}
+  #mission{position:absolute;top:var(--edgeT);right:var(--edgeR);width:250px;background:var(--panel);border:1px solid var(--hairline);padding:14px 16px 12px;backdrop-filter:blur(3px);pointer-events:auto}
   #mission .mhead{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px}
   #mission h3{font-size:10px;letter-spacing:.22em;color:var(--dim);font-weight:600;text-transform:uppercase}
   #mCount{font-family:var(--mono);font-size:10px;color:var(--amber);letter-spacing:.12em}
@@ -174,7 +212,7 @@
   /* captain's log overlay */
   #mlog{position:fixed;inset:0;background:rgba(4,6,10,.82);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;z-index:11}
   #mlog[hidden]{display:none}
-  #mlogPanel{position:relative;width:min(760px,92vw);max-height:84vh;overflow:auto;background:var(--panel);border:1px solid var(--hairline);padding:26px 28px 22px}
+  #mlogPanel{position:relative;width:min(760px,92vw);max-height:84vh;overflow:auto;-webkit-overflow-scrolling:touch;touch-action:pan-y;background:var(--panel);border:1px solid var(--hairline);padding:26px 28px 22px}
   #mlogTitle{font-size:10px;letter-spacing:.26em;color:var(--dim);text-transform:uppercase}
   #mlogSub{font-family:var(--mono);font-size:11px;color:var(--amber);margin-top:6px;letter-spacing:.12em}
   #mlogGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(215px,1fr));gap:10px;margin-top:16px}
@@ -189,7 +227,9 @@
   #mlogClose:hover,#mlogClose:focus-visible{color:var(--amber);border-color:var(--amber)}
 
   /* hint + scan overlay */
-  #hint{position:absolute;bottom:34px;left:44px;max-width:min(56vw,540px);line-height:1.8;font-family:var(--mono);font-size:10px;letter-spacing:.14em;color:var(--dim);text-transform:uppercase;transition:opacity 1.2s}
+  /* sits above the selector strip, not beside it: on a short landscape screen
+     the strip is wide enough to run straight through the hint */
+  #hint{position:absolute;bottom:calc(var(--edgeB) + var(--strip) + 6px);left:var(--edgeL);max-width:min(56vw,540px);line-height:1.8;font-family:var(--mono);font-size:10px;letter-spacing:.14em;color:var(--dim);text-transform:uppercase;transition:opacity 1.2s}
   #scan{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.55);opacity:0;transition:opacity .25s;pointer-events:none}
   #scan.on{opacity:1}
   #scan .inner{font-family:var(--mono);font-size:12px;letter-spacing:.3em;color:var(--amber);text-transform:uppercase;border:1px solid var(--hairline);padding:14px 26px;background:var(--panel)}
@@ -199,16 +239,114 @@
   /* lens flare ghosts */
   .flare{position:absolute;border-radius:50%;pointer-events:none;transform:translate(-50%,-50%);mix-blend-mode:screen}
 
-  @media (max-width:900px){
-    #datapanel{display:none}
-    #target{left:28px;top:24px}
-    #instruments{left:28px}
-    #hint{left:28px}
-    #mission{right:28px;top:24px;width:180px}
+  /* ---------- tablet & touch ----------
+     Three things change on the way down from a desktop window:
+     (1) the HUD moves closer to the edges so the globe keeps the middle,
+     (2) every control grows to a 44px finger target,
+     (3) below ~900px the side panels stop flanking the globe altogether and
+         stack into a bottom console — an iPad in portrait is only ~820px wide
+         and a left-hand instrument column lands squarely on the planet. */
+
+  /* iPad landscape: same layout, pulled in and slimmed down */
+  @media (max-width:1300px){
+    :root{--edge:26px;--hudBtnY:86px}
+    #datapanel{width:206px;padding:14px 15px}
+    #mission{width:216px}
+    #bodyName{font-size:clamp(24px,3.6vw,38px)}
   }
+
+  /* coarse pointer: finger-sized targets everywhere, whatever the width */
+  @media (pointer:coarse){
+    /* the box stays instrument-sized; ::after grows the hit area past 44px
+       without turning a "−" into a slab. The 12px gap between ticks means the
+       6px overhangs meet but never overlap. */
+    .tick{position:relative;width:34px;height:34px;font-size:15px}
+    .tick::after{content:"";position:absolute;inset:-6px}
+    #instruments .ctl{gap:12px}
+    .ovbtn{padding:11px 13px;font-size:11px;margin-top:7px}
+    #hudBtn{padding:11px 13px;font-size:11px}
+    #mLogBtn,#dataHead{padding:9px 0}
+    #scaleClose,#mlogClose,#orreryClose{width:42px;height:42px;font-size:15px}
+    .mapdot{padding:16px}
+    #mapexpand{padding:8px 0 8px 10px}
+    #datapanel input{width:48px;font-size:15px;padding:4px 0}
+    /* The strip grows and the rail drops, which buys the moon columns 18px of
+       separation instead of 12 (see posFor). A wide, short hit box then fits
+       between two moons without overlapping the one above: horizontal aim is
+       the forgiving axis here, because every moon of a planet shares its x. */
+    :root{--strip:92px;--railY:56px;--console:150px}   /* finger-sized rows stack taller */
+    #systemmap{width:min(900px,94vw)}
+    .mapdot.subdot{padding:6px 13px}
+  }
+
+  /* narrow / portrait: the side panels become a bottom console, stacked
+     upwards from the selector strip — instruments, then the overlay buttons,
+     then the folded data panel — so nothing at all sits over the globe */
+  @media (max-width:900px){
+    :root{--edge:20px;--strip:74px}
+    #bodyName{font-size:clamp(22px,5.4vw,34px)}
+    #mission{width:min(250px,44vw)}
+    #crosshair{top:44%}
+
+    #instruments{left:var(--edgeL);right:var(--edgeR);top:auto;bottom:calc(var(--edgeB) + var(--strip) + 8px);transform:none;
+                 flex-direction:row;align-items:flex-end;gap:20px}
+    #instruments .cell{padding:2px 0 3px 10px}
+    /* the overlay buttons lift out of the row onto their own line above it —
+       three of them will not share 820px with four readouts */
+    #instruments .cell.ov{position:absolute;left:0;right:0;bottom:calc(100% + 14px);border-left:0;padding:0;display:flex;flex-wrap:wrap;gap:8px}
+    #instruments .cell.ov .label{display:none}
+    .ovbtn{margin:0}
+    .ovbtn .k,#hudBtn .k{display:none}   /* the key tails cost width this layout does not have */
+
+    /* the hint moves up too — the bottom console has taken its old strip */
+    #hint{top:calc(var(--edgeT) + 180px);left:var(--edgeL);right:var(--edgeR);bottom:auto;max-width:none;text-align:center}
+
+    /* the data panel keeps every number but folds to its heading, and starts
+       folded here so the first thing you see is the planet */
+    /* capped by whichever is tighter: 44vh, or the room left between the
+       console below and the mission card and hint above it */
+    #datapanel{right:var(--edgeR);left:auto;top:auto;bottom:calc(var(--edgeB) + var(--strip) + var(--console));transform:none;
+               width:min(320px,62vw);overflow:auto;-webkit-overflow-scrolling:touch;touch-action:pan-y;
+               max-height:min(44vh, calc(100vh - var(--edgeT) - 240px - var(--edgeB) - var(--strip) - var(--console)))}
+    #datapanel[data-collapsed]{overflow:visible}
+    #factline{display:none}
+  }
+
+  /* short landscape — an iPad on its side leaves 730-860px of usable height,
+     depending on the model and how much of it Safari's chrome takes. A
+     vertically centred data panel that tall runs straight into the mission
+     card, so anchor it above the strip instead. */
+  @media (max-height:900px) and (min-width:901px){
+    /* bottom-anchored, and capped so it can never reach up into the mission
+       card above it — 180px is the tallest a four-line clue gets */
+    #datapanel{top:auto;bottom:calc(var(--edgeB) + var(--strip) + 14px);transform:none;
+               max-height:calc(100vh - var(--edgeT) - 180px - var(--edgeB) - var(--strip) - 14px);
+               overflow:auto;-webkit-overflow-scrolling:touch;touch-action:pan-y}
+    /* instruments hang from the top rather than centring, so they clear the
+       hud toggle on a short window */
+    #instruments{top:calc(var(--edgeT) + 158px);transform:none;gap:14px}
+    /* and the overlay buttons unstack below the readouts: three of them in a
+       column is 160px, which a 730px-tall iPad simply does not have spare */
+    #instruments .cell.ov{position:absolute;top:calc(100% + 28px);left:0;width:max-content;border-left:0;padding:0;display:flex;gap:8px}
+    #instruments .cell.ov .label{display:none}
+    .ovbtn{margin:0}
+    .ovbtn .k,#hudBtn .k{display:none}
+    /* the hint pulls into the gap between the two columns: the instrument
+       stack now reaches almost to the strip on this little height */
+    /* 246px clears the widest the data panel gets (230px) plus its own inset */
+    #hint{left:calc(var(--edgeL) + 220px);right:calc(var(--edgeR) + 246px);max-width:none;text-align:center}
+  }
+  /* the same short landscape, but with finger-sized rows: the data panel now
+     overflows its cap, so the fact line steps aside — it is the one thing here
+     that reappears in full on the survey stamp */
+  @media (max-height:900px) and (min-width:901px) and (pointer:coarse){
+    #factline{display:none}
+  }
+
   @media (prefers-reduced-motion: reduce){
     #scan .inner::after{animation:none;content:"..."}
     .mapdot .disc,.mapdot .name{transition:none}
+    #dataHead .chev,#hud.hidden>*{transition:none}
     #stamp.on .box{animation:none}
   }
 </style>
@@ -246,29 +384,34 @@
         <button class="tick" id="warpDown" aria-label="Slow time down">−</button>
         <span class="value" id="warpVal">1×</span>
         <button class="tick" id="warpUp" aria-label="Speed time up">+</button>
+        <button class="tick" id="warpHold" aria-label="Hold time still" aria-pressed="false">‖</button>
       </div>
       <div class="sub" id="warpSub">1 s = 6 min here</div>
     </div>
-    <div class="cell">
+    <div class="cell ov">
       <div class="label">Overlays</div>
-      <button class="ovbtn" id="layerBtn" aria-pressed="false">axis &amp; sun · key g</button>
-      <button class="ovbtn" id="markBtn" aria-pressed="false">landmarks · key n</button>
+      <button class="ovbtn" id="layerBtn" aria-pressed="false">axis &amp; sun<i class="k"> · key g</i></button>
+      <button class="ovbtn" id="markBtn" aria-pressed="false">landmarks<i class="k"> · key n</i></button>
+      <button class="ovbtn" id="scaleBtn" aria-haspopup="dialog">sense of scale<i class="k"> · key x</i></button>
     </div>
   </div>
 
+  <button id="hudBtn" aria-pressed="false"><span id="hudBtnLabel">◐ hide hud</span><i class="k"> · key h</i></button>
+
   <div id="datapanel">
-    <h3>Body data</h3>
-    <div class="row"><span class="label">Eq. radius</span><span class="value" id="dRadius">—</span></div>
-    <div class="row"><span class="label">Day length</span><span class="value" id="dDay">—</span></div>
-    <div class="row"><span class="label">Axial tilt</span><span class="value" id="dTilt">—</span></div>
-    <div class="row"><span class="label" id="dDistLabel">Dist. from Sol</span><span class="value" id="dDist">—</span></div>
-    <h3 class="subhead">You, here</h3>
-    <div class="row"><span class="label">Your weight</span><span class="value" id="yWeight">—</span></div>
-    <div class="row"><span class="label">Your best jump</span><span class="value" id="yJump">—</span></div>
-    <div class="row" id="yBdayRow"><span class="label">Birthdays here</span><span class="value" id="yBday">—</span></div>
-    <div class="row"><span class="label">Pilot</span><span class="value"><input id="pMass" type="number" min="10" max="200" inputmode="numeric"> kg · <input id="pAge" type="number" min="1" max="120" inputmode="numeric"> yr</span></div>
-    <div id="factline">—</div>
-    <button id="scaleBtn" aria-haspopup="dialog">⊕ sense of scale · key x</button>
+    <h3 class="dhead"><button id="dataHead" aria-expanded="true" aria-controls="dataBody">Body data<span class="chev">▾</span></button></h3>
+    <div id="dataBody">
+      <div class="row"><span class="label">Eq. radius</span><span class="value" id="dRadius">—</span></div>
+      <div class="row"><span class="label">Day length</span><span class="value" id="dDay">—</span></div>
+      <div class="row"><span class="label">Axial tilt</span><span class="value" id="dTilt">—</span></div>
+      <div class="row"><span class="label" id="dDistLabel">Dist. from Sol</span><span class="value" id="dDist">—</span></div>
+      <h3 class="subhead">You, here</h3>
+      <div class="row"><span class="label">Your weight</span><span class="value" id="yWeight">—</span></div>
+      <div class="row"><span class="label">Your best jump</span><span class="value" id="yJump">—</span></div>
+      <div class="row" id="yBdayRow"><span class="label">Birthdays here</span><span class="value" id="yBday">—</span></div>
+      <div class="row"><span class="label">Pilot</span><span class="value"><input id="pMass" type="number" min="10" max="200" inputmode="numeric"> kg · <input id="pAge" type="number" min="1" max="120" inputmode="numeric"> yr</span></div>
+      <div id="factline">—</div>
+    </div>
   </div>
 
   <div id="mission">
@@ -1468,7 +1611,11 @@ function ringCanvas(style){
 /* ================= renderer & scene ================= */
 const canvas=document.getElementById("scene");
 const renderer=new THREE.WebGLRenderer({canvas,antialias:true});
-renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+/* A retina iPad reports dpr 2, which on a 12.9" panel is a 2732×2048 buffer with
+   MSAA on top — enough to drop a tile-based GPU well under 60 fps while the
+   2048² surface textures are already resident. 1.75 is indistinguishable at
+   arm's length and buys back the headroom. */
+renderer.setPixelRatio(Math.min(window.devicePixelRatio,matchMedia("(pointer:coarse)").matches?1.75:2));
 renderer.outputEncoding=THREE.sRGBEncoding;
 const scene=new THREE.Scene();
 const camera=new THREE.PerspectiveCamera(55,1,0.01,6000);
@@ -1834,12 +1981,43 @@ const ctl={
 const MIN_D=1.10, MAX_D=17;
 /* rotation slows near the surface so low passes stay controllable */
 const rotScale=()=>0.16+0.84*clamp((ctl.dist-1)/3.5,0,1);
-canvas.addEventListener("pointerdown",e=>{
-  ctl.dragging=true; ctl.lx=e.clientX; ctl.ly=e.clientY;
-  canvas.classList.add("dragging"); canvas.setPointerCapture(e.pointerId);
+
+/* The whole window is the flight surface, not just the canvas: on a tablet the
+   HUD panels cover a large share of the screen, and a drag that dies because it
+   began on the mission card is the single most confusing thing about flying
+   with a finger. Only real controls swallow a gesture. */
+const CONTROLS="button,input,select,textarea,a,#systemmap,#orrery,#scale,#mlog";
+const isControl=t=>t instanceof Element&&t.closest(CONTROLS);
+
+/* Live pointers, so one finger rotates and two pinch. Held by id because a
+   tablet hands out a fresh id per finger and they lift in any order. */
+const touches=new Map();
+let pinchD=0;
+const pinchDist=()=>{
+  const[a,b]=[...touches.values()];
+  return Math.hypot(a.x-b.x,a.y-b.y);
+};
+addEventListener("pointerdown",e=>{
+  if(isControl(e.target)) return;
+  touches.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  if(touches.size===2){ pinchD=pinchDist(); ctl.dragging=false; }
+  else if(touches.size===1){ ctl.dragging=true; ctl.lx=e.clientX; ctl.ly=e.clientY; ctl.vTheta=ctl.vPhi=0; }
+  /* capture on the root so a drag that runs off the window still ends cleanly */
+  try{ document.documentElement.setPointerCapture(e.pointerId); }catch(err){}
+  canvas.classList.add("dragging");
   hideHint();
 });
-canvas.addEventListener("pointermove",e=>{
+addEventListener("pointermove",e=>{
+  if(!touches.has(e.pointerId)) return;
+  touches.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  if(touches.size>=2){
+    /* pinch → range. Same exponential feel as the wheel: the gap between the
+       fingers maps straight onto distance, so spreading them halves it. */
+    const d=pinchDist();
+    if(pinchD>0&&d>0) ctl.tDist=clamp(ctl.tDist*(pinchD/d),MIN_D,MAX_D);
+    pinchD=d;
+    return;
+  }
   if(!ctl.dragging) return;
   const dx=e.clientX-ctl.lx, dy=e.clientY-ctl.ly;
   ctl.lx=e.clientX; ctl.ly=e.clientY;
@@ -1848,15 +2026,29 @@ canvas.addEventListener("pointermove",e=>{
   ctl.vTheta=-dx*s*60; ctl.vPhi=-dy*s*60;
   ctl.tPhi=clamp(ctl.tPhi,0.06,Math.PI-0.06);
 });
-const endDrag=()=>{ ctl.dragging=false; canvas.classList.remove("dragging"); };
-canvas.addEventListener("pointerup",endDrag);
-canvas.addEventListener("pointercancel",endDrag);
-canvas.addEventListener("wheel",e=>{
+const endDrag=e=>{
+  touches.delete(e.pointerId);
+  if(touches.size===1){
+    /* dropped from a pinch back to one finger: re-anchor on the finger that is
+       still down, or the view snaps by the gap between them */
+    const[p]=[...touches.values()];
+    ctl.lx=p.x; ctl.ly=p.y; ctl.dragging=true; ctl.vTheta=ctl.vPhi=0;
+  }else if(touches.size===0){
+    ctl.dragging=false; pinchD=0; canvas.classList.remove("dragging");
+  }
+};
+addEventListener("pointerup",endDrag);
+addEventListener("pointercancel",endDrag);
+addEventListener("wheel",e=>{
+  if(e.target instanceof Element&&e.target.closest("#scalePanel,#mlogPanel,#orreryPanel")) return; // let a dialog scroll
   e.preventDefault();
   ctl.tDist*=Math.exp(e.deltaY*0.0013);
   ctl.tDist=clamp(ctl.tDist,MIN_D,MAX_D);
   hideHint();
 },{passive:false});
+/* iPadOS still double-tap-zooms the page through touch-action in some contexts,
+   and a stray browser zoom leaves the HUD stranded off-screen */
+addEventListener("gesturestart",e=>e.preventDefault());
 const keys={};
 addEventListener("keydown",e=>{
   if(e.key==="Escape"){ closeOrrery(); closeLog(); closeScale(); }
@@ -1907,6 +2099,45 @@ for(const[iid,key,lo,hi] of [["pMass","mass",10,200],["pAge","age",1,120]]){
   inp.addEventListener("blur",()=>{ inp.value=pilot[key]; });
 }
 
+/* ================= touch HUD =================
+   A tablet has no keyboard and no hover, so everything the hints offer a key
+   for also has a control, and the chrome itself can be folded away. */
+const coarse=matchMedia("(pointer:coarse)").matches;
+const narrow=()=>matchMedia("(max-width:900px)").matches;
+
+/* hide-the-hud toggle: the direct answer to a HUD that covers the world */
+let hudOff=false;
+function setHud(on){
+  hudOff=!on;
+  $("hud").classList.toggle("hidden",hudOff);
+  $("hudBtn").setAttribute("aria-pressed",String(hudOff));
+  $("hudBtnLabel").textContent=hudOff?"◑ show hud":"◐ hide hud";
+}
+$("hudBtn").addEventListener("click",()=>setHud(hudOff));
+
+/* the data panel folds to its heading; on a narrow screen it starts folded so
+   the first thing you see is the planet, not the numbers */
+const dataPanel=$("datapanel");
+function setData(open){
+  dataPanel.toggleAttribute("data-collapsed",!open);
+  $("dataHead").setAttribute("aria-expanded",String(open));
+  try{ localStorage.setItem("pe-datapanel",open?"1":"0"); }catch(e){}
+}
+{
+  let open=!narrow();
+  try{ const s=localStorage.getItem("pe-datapanel"); if(s!==null) open=s==="1"; }catch(e){}
+  setData(open);
+  $("dataHead").addEventListener("click",()=>setData(dataPanel.hasAttribute("data-collapsed")));
+}
+
+/* the instructions name gestures on touch and keys on a desktop — an iPad has
+   no Esc, and every overlay here also closes on a tap outside it */
+if(coarse){
+  $("hint").innerHTML="drag to fly &nbsp;·&nbsp; pinch to approach &nbsp;·&nbsp; tap a world below &nbsp;·&nbsp; ‖ holds time &nbsp;·&nbsp; ◐ clears the hud";
+  $("orreryHint").innerHTML="tap a body to set course &nbsp;·&nbsp; tap outside to close";
+  $("scaleFoot").innerHTML="distances to Earth are quoted at closest approach &nbsp;·&nbsp; airliner at 900 km/h &nbsp;·&nbsp; tap outside to close";
+}
+
 /* ================= time warp ================= */
 /* Every world turns on one clock: a full rotation takes dayH*10 seconds, so
    a second of flight is six minutes of that world's day, whichever world you
@@ -1925,11 +2156,13 @@ function setWarp(i){
   const min=6*s;  // 1 s at 1× = 0.1 of a body-hour = 6 minutes, on every world
   const n=v=>v<10?String(+v.toFixed(1)):String(Math.round(v));
   $("warpSub").textContent=s?"1 s = "+(min<60?n(min)+" min":n(min/60)+" h")+" here":"time held";
+  $("warpHold").setAttribute("aria-pressed",String(s===0));
 }
 const stepWarp=d=>setWarp(timeIdx+d);
 const holdWarp=()=>{ if(timeIdx===0) setWarp(warpResume); else { warpResume=timeIdx; setWarp(0); } };
 $("warpUp").addEventListener("click",()=>stepWarp(1));
 $("warpDown").addEventListener("click",()=>stepWarp(-1));
+$("warpHold").addEventListener("click",holdWarp);   // the touch stand-in for space
 setWarp(timeIdx);
 
 /* ================= science layers ================= */
@@ -2193,6 +2426,7 @@ addEventListener("keydown",e=>{
   if(e.key==="g"||e.key==="G"){ setLayers(!layers.on); hideHint(); }
   else if(e.key==="n"||e.key==="N"){ setMarks(!marks.want); hideHint(); }
   else if(e.key==="x"||e.key==="X"){ $("scale").hidden?openScale():closeScale(); hideHint(); }
+  else if(e.key==="h"||e.key==="H"){ setHud(hudOff); hideHint(); }
   else if(e.key===" "){ e.preventDefault(); holdWarp(); hideHint(); }
   else if(e.key==="]"||e.key==="+"||e.key==="="){ stepWarp(1); hideHint(); }
   else if(e.key==="["||e.key==="-"){ stepWarp(-1); hideHint(); }
@@ -2243,15 +2477,20 @@ async function setTarget(id){
 /* system map strip */
 {
   const map=$("systemmap");
+  /* A finger needs more room than a cursor, so on a touch screen the rail
+     drops 18px into a taller strip and the moon columns — which all share
+     their planet's x and can only separate vertically — spread with it.
+     These must track the --strip / --railY pair in the coarse-pointer CSS. */
+  const RAIL_Y=coarse?56:38, MOON_TOP=coarse?44:26, MOON_DY=coarse?18:12;
   const posFor=b=>{
-    if(b.id==="sun") return {x:2,y:38};
+    if(b.id==="sun") return {x:2,y:RAIL_Y};
     if(b.parent){
       const pp=posFor(BODIES.find(x=>x.id===b.parent));
       const i=BODIES.filter(x=>x.parent===b.parent).indexOf(b);
-      return {x:pp.x+3.2,y:26-12*i};
+      return {x:pp.x+3.2,y:MOON_TOP-MOON_DY*i};
     }
     const p=Math.log(b.distM/50+1)/Math.log(10125/50+1);
-    return {x:4+p*94+(b.railDX||0),y:b.railY||38};
+    return {x:4+p*94+(b.railDX||0),y:(b.railY||38)+(RAIL_Y-38)};
   };
   BODIES.forEach(b=>{
     const {x,y}=posFor(b);
@@ -2295,18 +2534,20 @@ function buildOrrery(){
     const g=el("g",{class:"obody",tabindex:"0","data-id":b.id},svg);
     const size=Math.max(2.6,b.dot.s*0.55);
     el("circle",{class:"selring",r:size+4.5},g);
-    el("circle",{r:Math.max(7,size+4),fill:"transparent"},g); // generous hit area
+    /* generous hit area — doubled for a fingertip, and since the moon groups
+       are children they still draw (and so hit-test) on top of it */
+    el("circle",{r:coarse?Math.max(15,size+10):Math.max(7,size+4),fill:"transparent"},g);
     el("circle",{r:size,fill:b.dot.c},g);
     const label=el("text",{},g); label.textContent=b.name.replace("The ","");
     const entry={id:b.id,g,label,R,size,
       T:12*Math.pow(ORBIT_YEARS[b.id],0.55), // visual period: outer worlds crawl, inner ones hustle
       phase:i*2.4};
     BODIES.filter(m=>m.parent===b.id).forEach((m,mi)=>{
-      const mr=11+5*mi;
+      const mr=coarse?14+7*mi:11+5*mi;   // wider moon orbits keep fingertips apart
       el("circle",{class:"orbit",r:mr},g);
       const mg=el("g",{class:"obody",tabindex:"0","data-id":m.id},g);
       el("circle",{class:"selring",r:5.5},mg);
-      el("circle",{r:6,fill:"transparent"},mg);
+      el("circle",{r:coarse?12:6,fill:"transparent"},mg);
       el("circle",{r:2.2,fill:m.dot.c},mg);
       const mt=el("text",{class:"sublabel",x:8,y:3},mg);
       mt.textContent=m.name.replace("The ","");
@@ -2630,6 +2871,9 @@ function resize(){
   camera.aspect=w/h; camera.updateProjectionMatrix();
 }
 addEventListener("resize",resize); resize();
+/* iPadOS reports the pre-rotation size for a beat after orientationchange, so
+   take a second look once the new layout has settled */
+addEventListener("orientationchange",()=>setTimeout(resize,300));
 
 let prevPos=new THREE.Vector3(), speedSmooth=0, last=performance.now(), aclock=0;
 function tick(now){

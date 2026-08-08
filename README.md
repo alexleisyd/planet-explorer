@@ -8,19 +8,34 @@ Open `index.html` in a browser. That's it — everything (including Three.js) is
 
 ## Controls
 
+The whole screen flies the craft — a drag that starts on top of a panel still
+works, so the HUD never gets in the way of the world behind it.
+
 | Input | Action |
 |---|---|
 | Drag | Fly around the target (with momentum) |
-| Scroll | Move closer / farther |
+| Scroll / pinch | Move closer / farther |
 | WASD / arrows | Nudge the camera |
-| Space, `[` `]` | Hold time / slow down / speed up |
-| `G` | Show the science layers |
-| `N` | Name the landmarks on this world |
-| `X` | Open "sense of scale" |
-| Bottom strip | Click a dot to set course; moons stack above their parent planet |
+| Space or `‖`, `[` `]` | Hold time / slow down / speed up |
+| `G` / `axis & sun` | Show the science layers |
+| `N` / `landmarks` | Name the landmarks on this world |
+| `X` / `sense of scale` | Open "sense of scale" |
+| `H` / `◐ hide hud` | Fold the whole HUD away, leaving just the world |
+| Bottom strip | Tap a dot to set course; moons stack above their parent planet |
 | Strip background / `⤢ orbital plot` | Open the live 2D system map |
 | `⬡ captain's log` | Open the survey-badge log |
-| Esc | Close the system map, log or scale panel |
+| Esc / tap outside | Close the system map, log or scale panel |
+| `body data ▾` | Fold the right-hand panel down to its heading |
+
+## On a tablet
+
+The game is built for iPad first. One finger flies, two fingers pinch to
+change range, and every keyboard shortcut also has a button, so nothing needs
+a keyboard. Controls grow to finger size on a touch screen, and the layout
+reflows: in landscape the instruments stay down the left edge, and in portrait
+— where an iPad is only ~820px wide and a side column would sit squarely on
+the planet — they drop into a console along the bottom with the data panel
+folded to its heading, leaving the globe completely clear.
 
 ## What's inside
 
