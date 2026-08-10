@@ -6,7 +6,12 @@
     "backgroundColor": "#000000",
     "allowMixedContent": false
   },
+  "ios": {
+    "backgroundColor": "#000000",
+    "contentInset": "never"
+  },
   "server": {
-    "androidScheme": "https"
+    "androidScheme": "https",
+    "iosScheme": "capacitor"
   }
 }

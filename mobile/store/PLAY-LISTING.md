@@ -15,6 +15,10 @@ ready to upload.
 | `screenshots-phone/*.png` | Phone screenshots | 1080×1920, 6 of them | ✅ |
 | `screenshots-tablet/*.png` | 10" tablet screenshots | 1600×2560, 3 of them | ✅ |
 
+The App Store's own answer sheet is `APP-STORE.md` beside this one; its screenshot
+sets (`screenshots-iphone/`, `screenshots-ipad/`) are Apple's sizes and are not
+interchangeable with these.
+
 Phone shots were captured from the real Android WebView with the emulator
 reconfigured to phone geometry (1080×2340 at 420dpi → 411×891 CSS px, which is
 the phone breakpoint), then scaled and padded with black to an exact 9:16. The
@@ -199,7 +203,7 @@ Expected outcome: **ESRB Everyone · PEGI 3 · USK 0 · ACB G · IARC 3+**.
 | Data safety | see above |
 | Government-issued IDs, biometrics | None |
 | Play App Signing | **Enrol** (default). The `.jks` in `android/` is the *upload* key. |
-| App bundle | `android/app/build/outputs/bundle/release/app-release.aab` (3.0 MB) |
+| App bundle | `android/app/build/outputs/bundle/release/app-release.aab` (2.9 MB) |
 | Countries | **DECIDE** — all countries is the simple answer for a free offline game |
 | Store presence → pricing | **Free** (locked; a free app cannot later become paid) |
 
