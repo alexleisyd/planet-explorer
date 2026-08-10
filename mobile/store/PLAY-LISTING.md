@@ -110,9 +110,9 @@ someone young.
 
 **Category** — Games → Educational
 **Tags** — Educational, Simulation, Space, Learning
-**Contact email** — **FILL IN** (appears publicly on the listing)
-**Website** — `https://alexleisyd.github.io/planet-explorer/privacy.html`, or your own
-**Privacy policy URL** — same, see below
+**Contact email** — `hello@lionforce.com.au`
+**Website** — `https://www.lionforce.com.au`
+**Privacy policy URL** — `https://www.lionforce.com.au/privacy/planet-explorer`
 
 **Release notes** (500 max, for the internal-testing release)
 
@@ -124,16 +124,21 @@ permissions.
 
 ---
 
-## Privacy policy — one step needed
+## Privacy policy
 
-`docs/privacy.html` is written and ready. To publish it free:
+Lives on the company site, alongside the Alphabet Match and Number Friends
+policies, rather than in this repo:
 
-1. GitHub → repo **Settings → Pages** → Source: *Deploy from a branch*, branch `main`, folder `/docs`.
-2. The URL becomes `https://alexleisyd.github.io/planet-explorer/privacy.html`.
-3. **FILL IN** the two `CONTACT_EMAIL` placeholders in that file first — a policy with no contact is a rejection, and which address to publish is your call.
+**`https://www.lionforce.com.au/privacy/planet-explorer`**
+
+Source is `src/app/privacy/planet-explorer/page.tsx` in the `lion-force-web`
+repo, on the `planet-explorer-privacy` branch — merge and deploy that before the
+Play listing is submitted, since Play checks the URL resolves.
 
 Play requires a privacy policy URL even when nothing is collected, and requires it
-again for the Families programme.
+again for the Families programme. `docs/privacy.html` in this repo was the earlier
+standalone draft and is now redundant — the company site is the single source, and
+two policies at two URLs is a liability rather than a backup.
 
 ---
 
