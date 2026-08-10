@@ -769,7 +769,10 @@ function lmDir(lat,lon){
 
 /* ================= texture builders ================= */
 /* bakes in ~14 ms slices so the page never freezes; reports progress */
-async function bakeSurface(size, fn, post, onProgress){
+/* thrown when a bake is given up on; callers treat it as "never mind", not an
+   error worth reporting */
+const ABORT=Symbol("bake abandoned");
+async function bakeSurface(size, fn, post, onProgress, live){
   const w=size,h=size>>1;
   const cv=document.createElement("canvas"); cv.width=w; cv.height=h;
   const ctx=cv.getContext("2d");
@@ -790,6 +793,9 @@ async function bakeSurface(size, fn, post, onProgress){
     }while(y<h&&performance.now()<slice);
     if(onProgress) onProgress(y/h);
     await new Promise(r=>setTimeout(r,0));
+    /* checked after the yield, not before: the whole point is that a selection
+       made while this slice was suspended gets to stop the rest of the walk */
+    if(live&&!live()) throw ABORT;
   }
   ctx.putImageData(img,0,0);
   if(post) post(ctx,w,h);
@@ -1798,15 +1804,22 @@ function surfaceTexture(id,onProgress){
   if(!texCache[id]) texCache[id]=(async()=>{
     const P=onProgress||(()=>{});
     const dscale=DISPLACE[id];
+    /* One bake serves every build that wants this map, so it stops only when
+       none of them is still wanted. That has to be read off the builds in
+       flight, not off texRef: the refcount is *held* by the abandoned build,
+       which cannot let go until this bake returns, so a count would keep every
+       doomed build alive for one full texture before it noticed. */
+    const live=()=>Object.values(building).some(e=>e.st.texIds&&e.st.texIds.has(id)&&e.lives.some(f=>f()));
+    let map=null, height=null;
+    try{
     /* named landmarks go on centrally, over the noise and under the crater
        fields, so the color pass and the height pass below stamp the same
        table and a callout can point at either */
     const base=SURFACES[id];
     const fn=LANDMARKS[id]?((px,py,pz,lat,lon)=>lmPaint(id,px,py,pz,base(px,py,pz,lat,lon))):base;
-    const cv=await bakeSurface(TEX_SIZES[id]||2048,fn,POSTS[id],dscale?p=>P(p*0.8):P);
-    const map=new THREE.CanvasTexture(cv);
+    const cv=await bakeSurface(TEX_SIZES[id]||2048,fn,POSTS[id],dscale?p=>P(p*0.8):P,live);
+    map=new THREE.CanvasTexture(cv);
     map.encoding=THREE.sRGBEncoding; map.anisotropy=renderer.capabilities.getMaxAnisotropy();
-    let height=null;
     if(dscale){
       const hf=HFIELDS[id]||HF_DEFAULT;
       const lm=LANDMARKS[id];
@@ -1818,7 +1831,7 @@ function surfaceTexture(id,onProgress){
         let e=hf(px,py,pz,lat,lon);
         if(lm) e=lmRelief(id,px,py,pz,e);
         const v=clamp(e,0,1)*255; return [v,v,v];
-      },null,p=>P(0.8+p*0.2));
+      },null,p=>P(0.8+p*0.2),live);
       softenCanvas(hcv,2);
       if(HCRATERS[id]) paintCraterHeights(hcv.getContext("2d"),hcv.width,hcv.height,HCRATERS[id][0],HCRATERS[id][1]);
       softenCanvas(hcv,2); // hide texel steps when the bump map is magnified up close
@@ -1828,6 +1841,13 @@ function surfaceTexture(id,onProgress){
     /* resolved values kept alongside the promise so eviction can reach the
        textures without awaiting anything */
     return texVal[id]={map,height,dscale};
+    }catch(e){
+      /* a half-walked canvas must never be cached as if it were a surface, and
+         the color map is already built by the time the height pass can abort */
+      for(const t of [map,height]) if(t) t.dispose();
+      delete texCache[id]; delete texVal[id];
+      throw e;
+    }
   })();
   return texCache[id];
 }
@@ -1837,17 +1857,26 @@ function surfaceTexture(id,onProgress){
    and Sprite geometry is a single module-level buffer in r128, so disposing it
    would take out every sprite in the scene. */
 const TEX_KEYS=["map","displacementMap","bumpMap","alphaMap","emissiveMap","normalMap","roughnessMap"];
-function releaseBody(id){
-  const rec=built[id]; if(!rec) return;
-  scene.remove(rec.group);
-  const seen=new Set([DETAIL_TEX]);
-  for(const t of rec.texIds){
-    const s=texVal[t]; if(!s) continue;
-    if(--texRef[t]>0){ if(s.map) seen.add(s.map); if(s.height) seen.add(s.height); continue; }
-    for(const tex of [s.map,s.height]) if(tex){ seen.add(tex); tex.dispose(); }
-    delete texCache[t]; delete texVal[t]; delete texRef[t];
+/* give up a set of claims — from an evicted body or an abandoned build, which
+   want exactly the same accounting. Returns every texCache map it touched, kept
+   or freed, so the caller's walk over the group can tell those apart from the
+   maps the body owns alone. A map still mid-bake is left to notice for itself
+   that its count has gone: deleting the promise here would let a later
+   selection start a second bake of the same id alongside the first. */
+function dropClaims(ids){
+  const known=new Set();
+  for(const t of ids){
+    const s=texVal[t], keep=--texRef[t]>0;
+    if(s) for(const tex of [s.map,s.height]) if(tex){ known.add(tex); if(!keep) tex.dispose(); }
+    if(keep) continue;
+    delete texRef[t];
+    if(s){ delete texVal[t]; delete texCache[t]; }
   }
-  rec.group.traverse(o=>{
+  return known;
+}
+function disposeGroup(group,known){
+  const seen=new Set(known); seen.add(DETAIL_TEX);
+  group.traverse(o=>{
     if(o.geometry&&!o.isSprite) o.geometry.dispose();
     const mats=Array.isArray(o.material)?o.material:(o.material?[o.material]:[]);
     for(const m of mats){
@@ -1855,6 +1884,11 @@ function releaseBody(id){
       m.dispose();
     }
   });
+}
+function releaseBody(id){
+  const rec=built[id]; if(!rec) return;
+  scene.remove(rec.group);
+  disposeGroup(rec.group,dropClaims(rec.texIds));
   delete built[id];
   const i=lru.indexOf(id); if(i>=0) lru.splice(i,1);
 }
@@ -1882,19 +1916,40 @@ const COMPANIONS={
 /* one build in flight per body. setTarget can't guard this itself — current only
    moves once a bake finishes, so tapping the same dot twice mid-bake entered the
    builder twice, and with maps refcounted the losing build's claims would never
-   be released. Both callers now share one build, as they already share one bake. */
+   be released. Both callers now share one build, as they already share one bake.
+   Each keeps its own liveness test and the build outlives all of them, so the
+   superseded tap of the pair can't cancel what the other is still waiting for. */
 const building={};
-function buildBody(b,prog){
+function buildBody(b,prog,live){
   if(built[b.id]){ touchBody(b.id); return Promise.resolve(built[b.id]); }
-  return building[b.id]||(building[b.id]=makeBody(b,prog).finally(()=>{ delete building[b.id]; }));
+  const want=live||(()=>true);
+  const e=building[b.id];
+  if(e){ e.lives.push(want); return e.p; }
+  const en=building[b.id]={lives:[want],st:{}};
+  en.p=makeBody(b,prog,()=>en.lives.some(f=>f()),en.st).then(
+    r=>{ delete building[b.id]; return r; },
+    err=>{
+      /* an abandoned build hands back everything it had got as far as claiming;
+         its partial group never reached the scene, so nothing else can hold it */
+      delete building[b.id];
+      const known=dropClaims(en.st.texIds||[]);
+      if(en.st.group) disposeGroup(en.st.group,known);
+      throw err;
+    });
+  return en.p;
 }
-async function makeBody(b,prog){
+async function makeBody(b,prog,live,st){
   const P=prog||(()=>{});
   /* claim each map as it is awaited, not once the body finishes: a bake runs for
      seconds, and a selection made in the middle of one must not be able to evict
      a texture this build is already holding */
-  const texIds=new Set();
-  const tex=(id,p)=>{ if(!texIds.has(id)){ texIds.add(id); texRef[id]=(texRef[id]||0)+1; } return surfaceTexture(id,p); };
+  const texIds=new Set(); st.texIds=texIds;
+  const tex=async(id,p)=>{
+    if(!texIds.has(id)){ texIds.add(id); texRef[id]=(texRef[id]||0)+1; }
+    const s=await surfaceTexture(id,p);
+    if(!live()) throw ABORT; // stop between maps too, not only between slices
+    return s;
+  };
   const comps=COMPANIONS[b.id]||[];
   /* winds: [band-pair count, uv.x speed/s]. Jupiter's bands counterflow;
      Neptune's whole cloud deck slides as one (0 pairs) at nearly 3× Jupiter's
@@ -1922,7 +1977,7 @@ async function makeBody(b,prog){
   /* anything that slides its map in longitude has to sample past the seam:
      the jet shader, and the Sun, whose whole surface creeps sideways */
   if(jetSpeed||b.id==="sun"){ surf.map.wrapS=THREE.RepeatWrapping; surf.map.needsUpdate=true; }
-  const group=new THREE.Group();
+  const group=new THREE.Group(); st.group=group; // so an abandoned build can be swept up
   const mat=(b.id==="sun")?new THREE.MeshBasicMaterial({map:surf.map}):planetMaterial(surf,1,jets,jetSpeed);
   /* displaced terrain needs vertices to push */
   const mesh=new THREE.Mesh(DISPLACE[b.id]?new THREE.SphereGeometry(1,320,240):new THREE.SphereGeometry(1,128,96),mat);
@@ -2565,9 +2620,17 @@ async function setTarget(id){
     $("scanText").textContent="Scanning surface — "+b.name;
     scan.classList.add("on");
   }
-  const bd=await buildBody(b,p=>{
-    if(req===reqSeq) $("scanText").textContent="Scanning surface — "+b.name+" · "+Math.round(p*100)+"%";
-  });
+  let bd;
+  try{
+    bd=await buildBody(b,p=>{
+      if(req===reqSeq) $("scanText").textContent="Scanning surface — "+b.name+" · "+Math.round(p*100)+"%";
+    },()=>req===reqSeq);
+  }catch(e){
+    /* superseded, and the bake stopped where it stood rather than walking two
+       million more pixels for a world nobody is waiting on */
+    if(e===ABORT) return;
+    throw e;
+  }
   if(req!==reqSeq) return; // a newer selection superseded this one
   if(current&&built[current.id]) scene.remove(built[current.id].group);
   scene.add(bd.group);
