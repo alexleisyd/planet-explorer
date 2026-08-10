@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Adaptive icon background: the game's own sky. Vector, not a bitmap, to keep
+     the "no assets" property of the project — and because a 108dp gradient is
+     smaller as four lines of XML than as five PNG densities.
+     Gradient coordinates in a VectorDrawable are absolute viewport units, not
+     the fractions an SVG radialGradient takes. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <path android:pathData="M0,0h108v108h-108z">
+        <aapt:attr xmlns:aapt="http://schemas.android.com/aapt" name="android:fillColor">
+            <gradient
+                android:type="radial"
+                android:centerX="36.7"
+                android:centerY="30.2"
+                android:gradientRadius="88.6">
+                <item android:offset="0" android:color="#FF101C28"/>
+                <item android:offset="0.55" android:color="#FF070A0E"/>
+                <item android:offset="1" android:color="#FF000000"/>
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- stars, kept well inside the 72dp the launcher actually shows -->
+    <path android:fillColor="#8B93A3" android:fillAlpha="0.85"
+        android:pathData="M26,27.95a1.05,1.05 0 1,0 0,2.1a1.05,1.05 0 1,0 0,-2.1z"/>
+    <path android:fillColor="#8B93A3" android:fillAlpha="0.6"
+        android:pathData="M82,25.15a0.85,0.85 0 1,0 0,1.7a0.85,0.85 0 1,0 0,-1.7z"/>
+    <path android:fillColor="#8B93A3" android:fillAlpha="0.75"
+        android:pathData="M84,74.95a1.05,1.05 0 1,0 0,2.1a1.05,1.05 0 1,0 0,-2.1z"/>
+    <path android:fillColor="#8B93A3" android:fillAlpha="0.55"
+        android:pathData="M25,79.2a0.8,0.8 0 1,0 0,1.6a0.8,0.8 0 1,0 0,-1.6z"/>
+</vector>

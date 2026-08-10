@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- Dark throughout, not DayNight: the game has one palette and a light
+         theme would put a white window behind a black sky for the frame or two
+         before the WebView paints. -->
+    <style name="AppTheme" parent="Theme.AppCompat.NoActionBar">
+        <item name="android:windowBackground">@color/void_black</item>
+    </style>
+
+    <style name="AppTheme.NoActionBar" parent="Theme.AppCompat.NoActionBar">
+        <item name="windowActionBar">false</item>
+        <item name="windowNoTitle">true</item>
+        <item name="android:windowBackground">@color/void_black</item>
+        <!-- The bars are hidden in MainActivity, but a swipe brings them back
+             transiently; transparent is what keeps that from repainting a strip
+             of the globe. -->
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+    </style>
+
+    <!-- Launch theme. The splash is a flat black field rather than Capacitor's
+         placeholder bitmap: the first thing the game draws is a black sky, so
+         there is nothing to cross-fade to. -->
+    <style name="AppTheme.NoActionBarLaunch" parent="Theme.SplashScreen">
+        <item name="android:windowBackground">@color/void_black</item>
+        <item name="windowSplashScreenBackground">@color/void_black</item>
+        <item name="postSplashScreenTheme">@style/AppTheme.NoActionBar</item>
+    </style>
+</resources>

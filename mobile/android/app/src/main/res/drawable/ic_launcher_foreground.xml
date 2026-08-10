@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Adaptive icon foreground: a ringed world, in the game's amber accent
+     (#FFB454) on the sky behind it. An XML comment cannot contain a double
+     hyphen, so the CSS variable names are spelled out here.
+     Everything sits inside a radius of 33dp about the centre — the safe zone an
+     adaptive icon is guaranteed to keep whatever mask the launcher applies, so
+     the ring tips survive a circular mask as well as a squircle.
+     The ring is drawn twice: the whole ellipse behind the globe, then its near
+     half over the top. That overlap is the only thing that reads as depth. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <group android:name="tilt" android:rotation="-19" android:pivotX="54" android:pivotY="54">
+
+        <path
+            android:pathData="M22,54a32,10.5 0 1,0 64,0a32,10.5 0 1,0 -64,0z"
+            android:fillColor="#00000000"
+            android:strokeColor="#FFB454"
+            android:strokeAlpha="0.42"
+            android:strokeWidth="2.8"/>
+
+        <path android:pathData="M54,34a20,20 0 1,0 0,40a20,20 0 1,0 0,-40z">
+            <aapt:attr xmlns:aapt="http://schemas.android.com/aapt" name="android:fillColor">
+                <gradient
+                    android:type="radial"
+                    android:centerX="47.6"
+                    android:centerY="46"
+                    android:gradientRadius="31.2">
+                    <item android:offset="0" android:color="#FFFFD79A"/>
+                    <item android:offset="0.42" android:color="#FFFFB454"/>
+                    <item android:offset="0.78" android:color="#FFC46A1F"/>
+                    <item android:offset="1" android:color="#FF5D2F0D"/>
+                </gradient>
+            </aapt:attr>
+        </path>
+
+        <path
+            android:pathData="M86,54A32,10.5 0 0 1 22,54"
+            android:fillColor="#00000000"
+            android:strokeColor="#FFB454"
+            android:strokeWidth="2.8"
+            android:strokeLineCap="round"/>
+    </group>
+</vector>

@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Planet Explorer</string>
+    <string name="title_activity_main">Planet Explorer</string>
+    <string name="package_name">au.com.lionforce.planetexplorer</string>
+    <string name="custom_url_scheme">au.com.lionforce.planetexplorer</string>
+</resources>

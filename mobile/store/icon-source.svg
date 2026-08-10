@@ -1,0 +1,27 @@
+<svg width="108" height="108" viewBox="0 0 108 108" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="sky" cx="34%" cy="28%" r="82%">
+      <stop offset="0" stop-color="#101c28"/>
+      <stop offset="0.55" stop-color="#070a0e"/>
+      <stop offset="1" stop-color="#000000"/>
+    </radialGradient>
+    <radialGradient id="globe" cx="34%" cy="30%" r="78%">
+      <stop offset="0" stop-color="#ffd79a"/>
+      <stop offset="0.42" stop-color="#ffb454"/>
+      <stop offset="0.78" stop-color="#c46a1f"/>
+      <stop offset="1" stop-color="#5d2f0d"/>
+    </radialGradient>
+  </defs>
+  <rect width="108" height="108" fill="url(#sky)"/>
+  <g fill="#8b93a3">
+    <circle cx="26" cy="29" r="1.05" opacity=".85"/>
+    <circle cx="82" cy="26" r="0.85" opacity=".6"/>
+    <circle cx="84" cy="76" r="1.05" opacity=".75"/>
+    <circle cx="25" cy="80" r="0.8" opacity=".55"/>
+  </g>
+  <g transform="rotate(-19 54 54)">
+    <ellipse cx="54" cy="54" rx="32" ry="10.5" fill="none" stroke="#ffb454" stroke-width="2.8" opacity=".42"/>
+    <circle cx="54" cy="54" r="20" fill="url(#globe)"/>
+    <path d="M 86 54 A 32 10.5 0 0 1 22 54" fill="none" stroke="#ffb454" stroke-width="2.8" stroke-linecap="round"/>
+  </g>
+</svg>

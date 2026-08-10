@@ -1,0 +1,17 @@
+{
+  "appId": "au.com.lionforce.planetexplorer",
+  "appName": "Planet Explorer",
+  "webDir": "www",
+  "android": {
+    "backgroundColor": "#000000",
+    "allowMixedContent": false
+  },
+  "ios": {
+    "backgroundColor": "#000000",
+    "contentInset": "never"
+  },
+  "server": {
+    "androidScheme": "https",
+    "iosScheme": "capacitor"
+  }
+}

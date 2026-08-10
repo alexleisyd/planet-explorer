@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <application
+        android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/AppTheme">
+
+        <activity
+            android:configChanges="orientation|keyboardHidden|keyboard|screenSize|locale|smallestScreenSize|screenLayout|uiMode|navigation|density"
+            android:name=".MainActivity"
+            android:label="@string/title_activity_main"
+            android:theme="@style/AppTheme.NoActionBarLaunch"
+            android:launchMode="singleTask"
+            android:exported="true">
+
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+
+        </activity>
+
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths"></meta-data>
+        </provider>
+    </application>
+
+    <!-- Permissions: none.
+         Capacitor scaffolds android.permission.INTERNET, and it has been
+         removed deliberately. The game makes no network request of any kind —
+         there is no fetch, no XHR, no remote asset — and the WebView loads
+         https://localhost through WebViewAssetLoader, which reads the packaged
+         assets and never touches a socket. An app that asks for nothing is also
+         the strongest possible answer to Play's Data Safety form and to Apple's
+         4.2 repackaged-website clause. If a build ever shows a blank WebView,
+         this line is the first thing to put back. -->
+
+    <!-- Declared not-required so Play does not filter the listing down to
+         touchscreen hardware: the game plays with a mouse and keyboard too,
+         which is what makes Chromebooks and desktop-mode devices eligible. -->
+    <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
+</manifest>

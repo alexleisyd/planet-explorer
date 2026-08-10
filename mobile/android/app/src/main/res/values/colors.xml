@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- The game's own sky (index.html :root). Every native surface behind the
+         WebView is painted the same black so nothing flashes at launch and no
+         grey band appears behind a transient system bar. -->
+    <color name="void_black">#FF000000</color>
+</resources>
