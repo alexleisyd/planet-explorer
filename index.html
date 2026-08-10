@@ -1885,16 +1885,34 @@ function ringMesh(rings,scale=1){
    for the backdrop hanging in its sky), so it can only be freed when the last
    body holding it is evicted. */
 const built={}, texCache={}, texVal={}, texRef={}, lru=[];
-/* how many bodies stay resident. A 3 GB phone hands the WebView a few hundred
-   megabytes before the low-memory killer takes an interest, and one displaced
-   world is ~40 MB of map plus ~9 MB of geometry; a desktop can afford to keep
-   the inner system warm. deviceMemory is Chromium-only, so WebKit falls through
-   to the viewport, which is the same signal the rest of the HUD uses. */
-const BODY_CACHE=(()=>{
-  if(navigator.deviceMemory<=4||Math.min(innerWidth,innerHeight)<480) return 2;
-  return matchMedia("(pointer:coarse)").matches?3:5;
+/* device tier, resolved once: 0 phone, 1 tablet, 2 desktop. How many bodies stay
+   resident and how big their maps are baked are the same question — how much of
+   this world can we hold at once — so both come off this one number.
+   deviceMemory is Chromium-only, so WebKit falls through to the viewport, which
+   is the same signal the rest of the HUD uses. */
+const TIER=(()=>{
+  if(navigator.deviceMemory<=4||Math.min(innerWidth,innerHeight)<480) return 0;
+  return matchMedia("(pointer:coarse)").matches?1:2;
 })();
+/* A 3 GB phone hands the WebView a few hundred megabytes before the low-memory
+   killer takes an interest, and one displaced world is ~40 MB of map plus ~9 MB
+   of geometry; a desktop can afford to keep the inner system warm. */
+const BODY_CACHE=[2,3,5][TIER];
 const TEX_SIZES={sun:1024, earthClouds:1024, jupiterSpot:1024, neptuneSpot:1024}; // everything else bakes at 2048×1024
+/* Phones halve every edge, which quarters the pixels: 2048×1024 is ~19.6 MB
+   resident (source canvas + GPU + mipmaps) against ~4.9 MB at 1024×512, so the
+   two bodies a phone keeps now cost less than one did. Tablet and desktop bake
+   the full map — the iPad is the primary surface, and the obvious middle step of
+   1536 is not worth having, since a non-power-of-two map with mipmaps is
+   silently rescaled *up* to 2048 on a WebGL1 context and would cost more than it
+   saved. Halving needs no special case for narrow relief: the doubled height map
+   a landmark body already asks for below halves with everything else, so Valles
+   Marineris keeps 93% of its depth at 1024 (it loses a fifth of it at 512, which
+   is where only fbm noise ever lands). maxTextureSize is the floor of last
+   resort — every GL stack we can run on allows 2048, but a software fallback
+   need not. */
+const MAX_TEX=renderer.capabilities.maxTextureSize;
+const texSize=n=>Math.min(MAX_TEX,TIER?n:n>>1);
 function surfaceTexture(id,onProgress){
   if(!texCache[id]) texCache[id]=(async()=>{
     const P=onProgress||(()=>{});
@@ -1912,16 +1930,18 @@ function surfaceTexture(id,onProgress){
        table and a callout can point at either */
     const base=SURFACES[id];
     const fn=LANDMARKS[id]?((px,py,pz,lat,lon)=>lmPaint(id,px,py,pz,base(px,py,pz,lat,lon))):base;
-    const cv=await bakeSurface(TEX_SIZES[id]||2048,fn,POSTS[id],dscale?p=>P(p*0.8):P,live);
+    const cv=await bakeSurface(texSize(TEX_SIZES[id]||2048),fn,POSTS[id],dscale?p=>P(p*0.8):P,live);
     map=new THREE.CanvasTexture(cv);
     map.encoding=THREE.sRGBEncoding; map.anisotropy=renderer.capabilities.getMaxAnisotropy();
     if(dscale){
       const hf=HFIELDS[id]||HF_DEFAULT;
       const lm=LANDMARKS[id];
-      /* a landmark with real relief needs twice the height resolution: the
-         softening pass below would otherwise smear something as narrow as
-         Valles Marineris (3° of arc) away to nothing */
-      const hsize=(lm&&lm.some(f=>f.h!=null||f.lvl!=null))?2048:1024;
+      /* a landmark with real relief needs twice the height resolution, because
+         of the softening below: measured against the unsoftened bake, the floor
+         of Valles Marineris (3° of arc across) keeps 99% of its depth at 2048
+         and 93% at 1024, but only 77% at 512 — so a phone lands on 1024 here
+         and 512 is left to the worlds whose relief is nothing but fbm */
+      const hsize=texSize((lm&&lm.some(f=>f.h!=null||f.lvl!=null))?2048:1024);
       const hcv=await bakeSurface(hsize,(px,py,pz,lat,lon)=>{
         let e=hf(px,py,pz,lat,lon);
         if(lm) e=lmRelief(id,px,py,pz,e);
