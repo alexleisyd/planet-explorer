@@ -349,6 +349,101 @@
     #factline{display:none}
   }
 
+  /* phone portrait. Half the width of the narrowest tablet this was built for,
+     so the chrome gives way rather than shrinking to fit: the globe is the game.
+     Panels stop competing for a row and stack down the left edge instead —
+     nothing here sits beside anything else, which is the only way 390px works.
+     --strip/--railY are deliberately left at their coarse values: posFor's
+     RAIL_Y/MOON_TOP/MOON_DY are pinned to them, and a rail that no longer
+     matches would drop the moon columns off the bottom of the strip. */
+  @media (max-width:480px){
+    /* 136 = the readout row (73) + its 14px gap + the one-line overlay row (37):
+       the data panel hangs off --console, so anything less puts its heading
+       inside the overlay buttons */
+    :root{--edge:14px;--hudBtnY:76px;--console:136px}
+    #bodyName{font-size:clamp(20px,7vw,29px)}
+    #target{max-width:none;right:var(--edgeR)}
+    /* the clue is what drives the game, so it keeps its full width under the
+       view buttons rather than being squeezed in beside the target block */
+    #mission{left:var(--edgeL);right:var(--edgeR);width:auto;top:calc(var(--edgeT) + var(--hudBtnY) + 92px)}
+    /* the hint sits between them and fades on the first touch anyway */
+    #hint{top:calc(var(--edgeT) + var(--hudBtnY) + 42px);left:var(--edgeL);right:var(--edgeR);font-size:9px;line-height:1.7}
+    /* velocity reads 0 unless you are moving, and rotation is "day length" three
+       rows into the data panel — the two you actually fly on stay */
+    #instruments .cell:nth-child(2),#instruments .cell:nth-child(3){display:none}
+    #instruments{gap:12px}
+    #instruments .cell{padding:2px 0 3px 8px}
+    /* the three overlay buttons must stay on ONE line. Wrapped, the row grows
+       to ~92px and the folded data panel — anchored off --console — lands inside
+       it; the tracking and the side padding are what buy the width back. */
+    #instruments .cell.ov{flex-wrap:nowrap}
+    .ovbtn{padding:11px 8px;letter-spacing:.06em}
+    #datapanel{left:var(--edgeL);right:var(--edgeR);width:auto;
+               max-height:min(34vh, calc(100vh - var(--edgeT) - 320px - var(--edgeB) - var(--strip) - var(--console)))}
+    /* Sol sits at 2% of the rail and Eris near 98%, so at this width their 16px
+       hit boxes hung off the screen. Pulling the rail in is what fixes it — the
+       dots keep the finger-sized padding the coarse block gives them. */
+    #systemmap{width:88vw}
+    #maptitle{display:none}
+  }
+
+  /* the small phone — 568px of height, where the bottom console and strip claim
+     220px before anything else is placed. The stack above them has to tighten or
+     the mission card and the data panel's heading end up in the same 30px. */
+  @media (max-width:480px) and (max-height:700px){
+    :root{--edgeT:max(18px,env(safe-area-inset-top));--edgeB:max(16px,env(safe-area-inset-bottom));
+          --hudBtnY:70px;--console:142px}
+    #bodyName{font-size:clamp(19px,6.4vw,25px)}
+    /* the folded data panel is 62px at finger size, and between the mission card
+       and the overlay row there were only 35px. The status line is what goes:
+       "set a course below" points at a strip that is already on screen. */
+    #mission{top:calc(var(--edgeT) + var(--hudBtnY) + 84px);max-height:96px;overflow:hidden}
+    #mission #mState{display:none}
+    #hint{top:calc(var(--edgeT) + var(--hudBtnY) + 38px)}
+    /* unfolding the panel here does cover the mission card, which is the right
+       trade: it is a deliberate tap, and the clue is back the moment it closes */
+    #datapanel{max-height:min(40vh, calc(100vh - var(--edgeT) - 160px - var(--edgeB) - var(--strip) - var(--console)))}
+    /* same railY overhang as landscape: 16px of bottom inset is not enough for
+       the dots that sit a row below the rail */
+    #systemmap{bottom:calc(var(--edgeB) + 12px)}
+    #instruments{bottom:calc(var(--edgeB) + var(--strip) + 20px)}
+  }
+
+  /* phone landscape — 390px of height, and the short-landscape rule above never
+     matched it: `min-width:901px` excluded every phone, so the data panel was
+     still vertically centred and ran straight through the mission card. Height
+     is the scarce axis here, so everything hugs an edge and the panels that can
+     fold, do. */
+  @media (max-height:450px){
+    :root{--edgeT:max(14px,env(safe-area-inset-top));--edgeB:max(12px,env(safe-area-inset-bottom));
+          --hudBtnY:66px;--console:104px}
+    #bodyName{font-size:clamp(18px,3.4vw,26px)}
+    #bodyClass{font-size:9px}
+    #target{max-width:34vw}
+    #crosshair{top:47%}
+    /* capped hard: at this height the clue cannot be allowed to grow into the
+       folded data panel underneath it */
+    #mission{top:var(--edgeT);width:min(240px,30vw);max-height:112px;overflow:hidden}
+    #datapanel{top:calc(var(--edgeT) + 122px);bottom:auto;transform:none;left:auto;right:var(--edgeR);
+               width:min(240px,30vw);max-height:calc(100vh - var(--edgeT) - 122px - var(--edgeB) - var(--strip) - 16px)}
+    #hint{display:none}   /* everything it names has a button, and there is no room */
+    /* the console stops short of the right edge so the data panel above has a
+       column of its own — full width, it ran straight under the panel */
+    #instruments{right:calc(var(--edgeR) + 260px);bottom:calc(var(--edgeB) + var(--strip) + 24px)}
+    #instruments .cell:nth-child(3){display:none}
+    /* a few bodies carry a railY nudge that puts them below a 74px strip; with
+       only 12px of bottom inset left that reaches past the screen edge */
+    #systemmap{bottom:calc(var(--edgeB) + 16px)}
+  }
+
+  /* 320px — the smallest phone still in service. Three overlay buttons will not
+     share 292px at the size above, and a wrapped row pushes the console up into
+     the data panel, so the labels take one more step down. This is the floor:
+     below it the row would have to lose a button. */
+  @media (max-width:360px){
+    .ovbtn{padding:9px 6px;font-size:10px;letter-spacing:.04em}
+  }
+
   @media (prefers-reduced-motion: reduce){
     #scan .inner::after{animation:none;content:"..."}
     .mapdot .disc,.mapdot .name{transition:none}
