@@ -1775,7 +1775,24 @@ function ringMesh(rings,scale=1){
 }
 
 /* ================= body construction (cached) ================= */
-const built={}, texCache={};
+/* Every baked map is resident twice over — once as the source canvas three keeps
+   alive on texture.image, once uploaded to the GPU — so a 2048×1024 surface
+   costs ~19.6 MB and touring all 24 bodies once allocated ~800 MB that was
+   never given back. Bodies are therefore held in an LRU, and their maps are
+   reference-counted across it rather than owned by one body: a texture is
+   shared (Jupiter's build bakes its four moons; a moon's build bakes its host
+   for the backdrop hanging in its sky), so it can only be freed when the last
+   body holding it is evicted. */
+const built={}, texCache={}, texVal={}, texRef={}, lru=[];
+/* how many bodies stay resident. A 3 GB phone hands the WebView a few hundred
+   megabytes before the low-memory killer takes an interest, and one displaced
+   world is ~40 MB of map plus ~9 MB of geometry; a desktop can afford to keep
+   the inner system warm. deviceMemory is Chromium-only, so WebKit falls through
+   to the viewport, which is the same signal the rest of the HUD uses. */
+const BODY_CACHE=(()=>{
+  if(navigator.deviceMemory<=4||Math.min(innerWidth,innerHeight)<480) return 2;
+  return matchMedia("(pointer:coarse)").matches?3:5;
+})();
 const TEX_SIZES={sun:1024, earthClouds:1024, jupiterSpot:1024, neptuneSpot:1024}; // everything else bakes at 2048×1024
 function surfaceTexture(id,onProgress){
   if(!texCache[id]) texCache[id]=(async()=>{
@@ -1808,9 +1825,48 @@ function surfaceTexture(id,onProgress){
       height=new THREE.CanvasTexture(hcv);
       height.anisotropy=renderer.capabilities.getMaxAnisotropy();
     }
-    return {map,height,dscale};
+    /* resolved values kept alongside the promise so eviction can reach the
+       textures without awaiting anything */
+    return texVal[id]={map,height,dscale};
   })();
   return texCache[id];
+}
+/* three's material.dispose() deliberately leaves textures alone, so the maps a
+   body owns outright — ring, corona, prominence, none of them in texCache — are
+   walked by hand. DETAIL_TEX is shared by every planet material and never goes,
+   and Sprite geometry is a single module-level buffer in r128, so disposing it
+   would take out every sprite in the scene. */
+const TEX_KEYS=["map","displacementMap","bumpMap","alphaMap","emissiveMap","normalMap","roughnessMap"];
+function releaseBody(id){
+  const rec=built[id]; if(!rec) return;
+  scene.remove(rec.group);
+  const seen=new Set([DETAIL_TEX]);
+  for(const t of rec.texIds){
+    const s=texVal[t]; if(!s) continue;
+    if(--texRef[t]>0){ if(s.map) seen.add(s.map); if(s.height) seen.add(s.height); continue; }
+    for(const tex of [s.map,s.height]) if(tex){ seen.add(tex); tex.dispose(); }
+    delete texCache[t]; delete texVal[t]; delete texRef[t];
+  }
+  rec.group.traverse(o=>{
+    if(o.geometry&&!o.isSprite) o.geometry.dispose();
+    const mats=Array.isArray(o.material)?o.material:(o.material?[o.material]:[]);
+    for(const m of mats){
+      for(const k of TEX_KEYS){ const t=m[k]; if(t&&!seen.has(t)){ seen.add(t); t.dispose(); } }
+      m.dispose();
+    }
+  });
+  delete built[id];
+  const i=lru.indexOf(id); if(i>=0) lru.splice(i,1);
+}
+/* most-recent last. The body on screen and the one just built are pinned, so
+   walking the selector strip faster than a bake completes can never evict what
+   it is about to show. */
+function touchBody(id){ const i=lru.indexOf(id); if(i>=0) lru.splice(i,1); lru.push(id); }
+function trimCache(...pin){
+  const keep=new Set(pin.filter(Boolean));
+  for(let i=0;i<lru.length&&lru.length>BODY_CACHE;){
+    if(keep.has(lru[i])) i++; else releaseBody(lru[i]); // releaseBody splices, so i stays put
+  }
 }
 /* companions shown orbiting their parent; distances compressed and sizes
    exaggerated ~2.5× for visibility (true scale would render them as specks).
@@ -1823,9 +1879,22 @@ const COMPANIONS={
   neptune:[{id:"triton",dist:5.5,size:0.11,T:-150,incl:0.38}],
   pluto:[{id:"charon",dist:4.2,size:0.51,T:160}], // half Pluto's size — a binary pair
 };
-async function buildBody(b,prog){
-  if(built[b.id]) return built[b.id];
+/* one build in flight per body. setTarget can't guard this itself — current only
+   moves once a bake finishes, so tapping the same dot twice mid-bake entered the
+   builder twice, and with maps refcounted the losing build's claims would never
+   be released. Both callers now share one build, as they already share one bake. */
+const building={};
+function buildBody(b,prog){
+  if(built[b.id]){ touchBody(b.id); return Promise.resolve(built[b.id]); }
+  return building[b.id]||(building[b.id]=makeBody(b,prog).finally(()=>{ delete building[b.id]; }));
+}
+async function makeBody(b,prog){
   const P=prog||(()=>{});
+  /* claim each map as it is awaited, not once the body finishes: a bake runs for
+     seconds, and a selection made in the middle of one must not be able to evict
+     a texture this build is already holding */
+  const texIds=new Set();
+  const tex=(id,p)=>{ if(!texIds.has(id)){ texIds.add(id); texRef[id]=(texRef[id]||0)+1; } return surfaceTexture(id,p); };
   const comps=COMPANIONS[b.id]||[];
   /* winds: [band-pair count, uv.x speed/s]. Jupiter's bands counterflow;
      Neptune's whole cloud deck slides as one (0 pairs) at nearly 3× Jupiter's
@@ -1849,7 +1918,7 @@ async function buildBody(b,prog){
     +(pc?0.6+((pb.id==="jupiter"||pb.id==="neptune")?0.2:0)+(pb.clouds?0.3:0):0);
   let acc=0;
   const track=w=>p=>P((acc+p*w)/parts);
-  const surf=await surfaceTexture(b.id,track(1)); acc+=1;
+  const surf=await tex(b.id,track(1)); acc+=1;
   /* anything that slides its map in longitude has to sample past the seam:
      the jet shader, and the Sun, whose whole surface creeps sideways */
   if(jetSpeed||b.id==="sun"){ surf.map.wrapS=THREE.RepeatWrapping; surf.map.needsUpdate=true; }
@@ -1864,14 +1933,14 @@ async function buildBody(b,prog){
 
   let cloudMesh=null;
   if(b.clouds){
-    const ct=(await surfaceTexture("earthClouds",track(0.4))).map; acc+=0.4;
+    const ct=(await tex("earthClouds",track(0.4))).map; acc+=0.4;
     cloudMesh=new THREE.Mesh(new THREE.SphereGeometry(1.014,128,96),
       new THREE.MeshStandardMaterial({map:ct,transparent:true,roughness:1,depthWrite:false}));
     spinGroup.add(cloudMesh);
   }
   let spotMesh=null;
   if(hasSpot){
-    const st=(await surfaceTexture(b.id+"Spot",track(0.3))).map; acc+=0.3;
+    const st=(await tex(b.id+"Spot",track(0.3))).map; acc+=0.3;
     spotMesh=new THREE.Mesh(new THREE.SphereGeometry(1.006,96,72),
       new THREE.MeshStandardMaterial({map:st,transparent:true,roughness:1,depthWrite:false}));
     spinGroup.add(spotMesh);
@@ -1915,7 +1984,7 @@ async function buildBody(b,prog){
   const moonPivots=[];
   for(let i=0;i<comps.length;i++){
     const c=comps[i];
-    const ms=await surfaceTexture(c.id,track(0.5)); acc+=0.5;
+    const ms=await tex(c.id,track(0.5)); acc+=0.5;
     const pivot=new THREE.Group();
     if(c.ecliptic){ pivot.rotation.z=TILTS.earth; pivot.rotation.x=0.09; } // Earth's moon rides near the ecliptic
     if(c.incl) pivot.rotation.x=c.incl;
@@ -1935,7 +2004,7 @@ async function buildBody(b,prog){
     /* never closer than max zoom-out, so the camera can't fly into it */
     const pdist=Math.max(pc.dist/pc.size, MAX_D+psize*1.3);
     const [pjets,pspeed]=JETS[pb.id]||[0,0];
-    const ps=await surfaceTexture(pb.id,track(0.6)); acc+=0.6;
+    const ps=await tex(pb.id,track(0.6)); acc+=0.6;
     if(pspeed){ ps.map.wrapS=THREE.RepeatWrapping; ps.map.needsUpdate=true; }
     parentMat=planetMaterial(ps,psize,pjets,pspeed);
     const pg=new THREE.Group();
@@ -1945,12 +2014,12 @@ async function buildBody(b,prog){
        tidally locked to Charon and keeps one face toward it */
     parentSpinRate=pb.id==="pluto"?(2*Math.PI)/pc.T:2*Math.PI/(pb.dayH*10);
     if(pb.id==="jupiter"||pb.id==="neptune"){
-      const st=(await surfaceTexture(pb.id+"Spot",track(0.2))).map; acc+=0.2;
+      const st=(await tex(pb.id+"Spot",track(0.2))).map; acc+=0.2;
       parentSpin.add(new THREE.Mesh(new THREE.SphereGeometry(psize*1.006,96,72),
         new THREE.MeshStandardMaterial({map:st,transparent:true,roughness:1,depthWrite:false})));
     }
     if(pb.clouds){
-      const ct=(await surfaceTexture("earthClouds",track(0.3))).map; acc+=0.3;
+      const ct=(await tex("earthClouds",track(0.3))).map; acc+=0.3;
       parentCloud=new THREE.Mesh(new THREE.SphereGeometry(psize*1.014,96,72),
         new THREE.MeshStandardMaterial({map:ct,transparent:true,roughness:1,depthWrite:false}));
       parentSpin.add(parentCloud);
@@ -1977,7 +2046,12 @@ async function buildBody(b,prog){
     group.add(pg);
   }
   group.rotation.z=-(TILTS[b.id]||0);
-  built[b.id]={group,spinGroup,spinRate,cloudMesh,spotMesh,mat,moonPivots,proms,coronas,parentSpin,parentMat,parentSpinRate,parentOrbit,parentCloud};
+  built[b.id]={group,spinGroup,spinRate,cloudMesh,spotMesh,mat,moonPivots,proms,coronas,parentSpin,parentMat,parentSpinRate,parentOrbit,parentCloud,texIds};
+  /* trim here rather than in setTarget so the cache is bounded even when a
+     superseded bake still lands: it stays cached and useful, just no longer the
+     most recent thing in the list */
+  touchBody(b.id);
+  trimCache(b.id,current&&current.id);
   return built[b.id];
 }
 
