@@ -373,9 +373,9 @@
     #mission{left:var(--edgeL);right:var(--edgeR);width:auto;top:calc(var(--edgeT) + var(--hudBtnY) + 92px)}
     /* the hint sits between them and fades on the first touch anyway */
     #hint{top:calc(var(--edgeT) + var(--hudBtnY) + 42px);left:var(--edgeL);right:var(--edgeR);font-size:9px;line-height:1.7}
-    /* velocity reads 0 unless you are moving, and rotation is "day length" three
-       rows into the data panel — the two you actually fly on stay */
-    #instruments .cell:nth-child(2),#instruments .cell:nth-child(3){display:none}
+    /* rotation is "day length" three rows into the data panel, so on a phone the
+       console is the time warp and the overlays — the two you actually fly on */
+    #instruments .cell:nth-child(1){display:none}
     #instruments{gap:12px}
     #instruments .cell{padding:2px 0 3px 8px}
     /* the three overlay buttons must stay on ONE line. Wrapped, the row grows
@@ -444,7 +444,7 @@
     /* the console stops short of the right edge so the data panel above has a
        column of its own — full width, it ran straight under the panel */
     #instruments{right:calc(var(--edgeR) + 260px);bottom:calc(var(--edgeB) + var(--strip) + 24px)}
-    #instruments .cell:nth-child(3){display:none}
+    #instruments .cell:nth-child(1){display:none}   /* day length, in the data panel too */
     /* and the same one-line rule the narrow block states, because this branch is
        reached by width as well: a 667px-wide phone on its side leaves the console
        367px once the data panel's column is reserved, which the three buttons at
@@ -488,14 +488,6 @@
   </div>
 
   <div id="instruments">
-    <div class="cell">
-      <div class="label">Range to surface</div>
-      <span class="value" id="rangeVal">—</span><span class="unit">km</span>
-    </div>
-    <div class="cell">
-      <div class="label">Relative velocity</div>
-      <span class="value" id="speedVal">0</span><span class="unit">km/s</span>
-    </div>
     <div class="cell">
       <div class="label">Local rotation</div>
       <span class="value" id="rotVal">—</span><span class="unit">h / day</span>
@@ -3266,7 +3258,7 @@ addEventListener("resize",resize); resize();
    take a second look once the new layout has settled */
 addEventListener("orientationchange",()=>setTimeout(resize,300));
 
-let prevPos=new THREE.Vector3(), speedSmooth=0, last=performance.now(), aclock=0;
+let last=performance.now(), aclock=0;
 function tick(now){
   requestAnimationFrame(tick);
   const dt=Math.min((now-last)/1000,0.05); last=now;
@@ -3337,16 +3329,8 @@ function tick(now){
       bd.coronas[1].scale.setScalar(9*(2-k));
     }
 
-    /* instruments */
-    const km=Math.max(0,(ctl.dist-1)*current.radiusKm);
-    $("rangeVal").textContent=fmt(km);
-    const moved=camera.position.distanceTo(prevPos)*current.radiusKm/Math.max(dt,1e-4);
-    speedSmooth+=(moved-speedSmooth)*Math.min(1,dt*6);
-    $("speedVal").textContent=fmt(speedSmooth);
-
     surveyTick(dt);
   }
-  prevPos.copy(camera.position);
   updateFlares();
   if(layers.on) updateLayerLabels();
   if(marks.on) updateMarks();
