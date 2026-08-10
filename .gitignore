@@ -13,6 +13,17 @@ mobile/android/capacitor-cordova-android-plugins/
 mobile/android/app/capacitor.build.gradle
 mobile/android/capacitor.settings.gradle
 
+# Xcode / SwiftPM build output. ios/.gitignore covers the rest of the tree;
+# these are the paths that would otherwise land in a commit from the repo root.
+mobile/ios/App/build/
+mobile/ios/App/App/public/
+mobile/ios/App/App/capacitor.config.json
+mobile/ios/App/App/config.xml
+mobile/ios/capacitor-cordova-ios-plugins/
+mobile/ios/App/.swiftpm/
+mobile/ios/App/CapApp-SPM/.build/
+**/xcuserdata/
+
 # Gradle / Android build output
 mobile/android/build/
 mobile/android/app/build/
@@ -30,5 +41,7 @@ keystore.properties
 # macOS
 .DS_Store
 
-# Tooling scratch
+# Tooling scratch. pe-touch.html is the forced-coarse copy of index.html that
+# CLAUDE.md's touch recipe writes; the viewport harness serves it from here.
 .playwright-mcp/
+pe-touch.html
