@@ -99,6 +99,20 @@ Physical invariants baked into `buildBody` — preserve them when touching spin/
 
 **Main loop (`index.html:2871`)** — single `requestAnimationFrame` tick: keyboard nudges, inertia, camera smoothing, per-body animation (spin, wind uniforms, moon pivots, parent backdrop orbit, solar prominence breathing), instrument updates, `surveyTick`, lens flares, both label overlays, render.
 
+## The Android shell (`mobile/`)
+
+A Capacitor 8 wrapper for Google Play, kept in `mobile/` precisely so the repo root stays the three files and `open index.html` keeps working. `au.com.lionforce.planetexplorer`, `minSdk 29` (the tested floor and the installable floor are the same number on purpose), `compileSdk`/`targetSdk 36`.
+
+- **`mobile/www/` is a build output, not a source.** `npm run copy` deletes it and re-copies `index.html` + `three.min.js` from the repo root; `npm run sync` does that and then `cap sync`. Editing anything under `www/` or `android/app/src/main/assets/public/` is editing a file that the next sync throws away.
+- **The APK declares no permissions.** Capacitor scaffolds `android.permission.INTERNET` and it is deliberately deleted from `AndroidManifest.xml` — the game makes no network request and the WebView serves `https://localhost` out of the packaged assets through `WebViewAssetLoader`, which never opens a socket. Verified on the built APK, which carries only androidx's own `DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION`. If a build ever shows a blank WebView, that line is the first thing to put back.
+- `MainActivity` hides both system bars (transient-by-swipe) and re-hides them in `onWindowFocusChanged`, and sets `LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES` **in code rather than in the theme**, because whether `postSplashScreenTheme` has been applied by the time the window exists depends on the splash plugin being installed. The cutout mode is what makes the WebView report a real `env(safe-area-inset-*)` for `--edgeT`/`--edgeB`/`--edgeL`/`--edgeR`.
+- **`index.html` carries exactly two `window.Capacitor` probes**, both inert in a browser: `#fsBtn` is suppressed on native (the app is already immersive, so the control would toggle a state it can never leave), and the hardware back button closes the topmost open dialog. Plugins are read off `window.Capacitor.Plugins` at runtime, which is what keeps the game free of imports and a build step.
+- Back at the root **minimises, never exits**: finishing the activity throws away the body cache and any bake in flight, and a back swipe should not cost the player seconds of re-scanning. Verified — same pid after back, state intact on resume.
+- `androidScheme` is pinned to `https` in `capacitor.config.json`. Changing it changes the WebView's origin and silently drops every `pe-*` localStorage key with it.
+- localStorage was **not** migrated to Capacitor Preferences. On Android both live in the app's private data and are cleared by the same actions, so the swap buys nothing; it becomes worth doing for iOS, where WebKit can evict website data.
+- Android's one-time "Viewing full screen" confirmation panel takes focus over the game on first launch and swallows the first back press. It is a system notice, not a bug — `adb shell settings put secure immersive_mode_confirmations confirmed` silences it for testing.
+- Debug builds are debuggable over the WebView's DevTools socket, which is how the on-device numbers were measured: `adb forward tcp:9222 localabstract:webview_devtools_remote_<pid>`, then drive CDP `Runtime.evaluate` over the plain `WebSocket` in Node 22 — no client library needed.
+
 ## Conventions
 
 - Compact style: minimal spacing around operators, single-line helpers, `const $=id=>document.getElementById(id)`.

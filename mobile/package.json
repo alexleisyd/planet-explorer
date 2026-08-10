@@ -1,0 +1,23 @@
+{
+  "name": "planet-explorer-mobile",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Capacitor shell for Planet Explorer. The game itself is the three files in the repo root; www/ is a copy, never an edit target.",
+  "scripts": {
+    "copy": "node scripts/copy-game.mjs",
+    "sync": "npm run copy && cap sync android",
+    "open": "cap open android",
+    "dev": "npm run sync && cap run android",
+    "bundle": "npm run sync && cd android && ./gradlew bundleRelease",
+    "apk": "npm run sync && cd android && ./gradlew assembleDebug"
+  },
+  "license": "ISC",
+  "dependencies": {
+    "@capacitor/android": "^8.5.0",
+    "@capacitor/app": "^8.1.1",
+    "@capacitor/core": "^8.5.0"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^8.5.0"
+  }
+}

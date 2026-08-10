@@ -2310,6 +2310,23 @@ addEventListener("keydown",e=>{
 });
 addEventListener("keyup",e=>{ delete keys[e.key]; });
 
+/* Android's back gesture, which is that platform's Escape. Capacitor publishes
+   its installed plugins on window.Capacitor.Plugins at runtime, so this needs
+   no bundler and no import, and it is simply inert in a browser where
+   window.Capacitor does not exist. Registering a listener takes over the
+   default, so this has to answer for the root case too: it *minimises* rather
+   than exits, because finishing the activity throws away the body cache and
+   whatever bake is in flight, and a back swipe should not cost the player
+   several seconds of re-scanning a world they were already looking at. */
+{
+  const App=window.Capacitor?.Plugins?.App;
+  App?.addListener?.("backButton",()=>{
+    const open=[["orrery",closeOrrery],["scale",closeScale],["mlog",closeLog]].find(([id])=>!$(id).hidden);
+    if(open) open[1]();
+    else (App.minimizeApp||App.exitApp).call(App);
+  });
+}
+
 /* ================= HUD wiring ================= */
 const $=id=>document.getElementById(id);
 let current=null, hintHidden=false;
@@ -2381,7 +2398,13 @@ let toggleFull=()=>{};
   const exit=document.exitFullscreen||document.webkitExitFullscreen;
   const isFull=()=>!!(document.fullscreenElement||document.webkitFullscreenElement);
   const allowed=document.fullscreenEnabled??document.webkitFullscreenEnabled??false;
-  const standalone=matchMedia("(display-mode: standalone)").matches||navigator.standalone===true;
+  /* Nothing to shed: a home-screen web app has no browser chrome, and the
+     packaged Android app is already immersive — MainActivity hides both system
+     bars — so the control would toggle a state the app is permanently in.
+     window.Capacitor is simply absent in a browser, which is what keeps this a
+     one-line probe rather than a build flag. */
+  const standalone=matchMedia("(display-mode: standalone)").matches||navigator.standalone===true
+    ||window.Capacitor?.isNativePlatform?.()===true;
   const fsBtn=$("fsBtn");
 
   if(req&&exit&&allowed&&!standalone){
