@@ -25,6 +25,19 @@ compositions are the same six ideas as the Play set: named landmarks on Earth,
 Valles Marineris in relief, Jupiter's bands, Saturn under the science layers, Io,
 and the sense-of-scale panel.
 
+**Every screenshot must be flattened — no alpha channel.** Apple wants RGB with no
+transparency, and `simctl io screenshot` writes RGBA, so a capture goes straight
+into Connect only after
+
+```
+magick shot.png -background black -alpha remove -alpha off -colorspace sRGB -strip shot.png
+```
+
+This is the same trap the app icon has (`npm run icons` strips it there), and it
+is worth knowing that Connect does not always say "alpha" when it refuses the
+file — it can report the *dimensions* as wrong on a file whose dimensions are
+exactly right.
+
 **The iPad set is landscape**, which is how the game is meant to be held. Apple
 accepts either orientation. Getting landscape is the one part of this shoot that
 is not scriptable: an iPad app that supports Split View must support all four
