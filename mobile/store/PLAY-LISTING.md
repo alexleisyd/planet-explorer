@@ -133,11 +133,14 @@ permissions.
 Lives on the company site, alongside the Alphabet Match and Number Friends
 policies, rather than in this repo:
 
-**`https://www.lionforce.com.au/privacy/planet-explorer`**
+**`https://www.lionforce.com.au/privacy/planet-explorer`** — **live**, verified
+10 August 2026 (effective date on the page is the same day). Nothing is blocking
+the listing here any more.
 
 Source is `src/app/privacy/planet-explorer/page.tsx` in the `lion-force-web`
-repo, on the `planet-explorer-privacy` branch — merge and deploy that before the
-Play listing is submitted, since Play checks the URL resolves.
+repo. Keep it in step with this sheet if either changes: it names the same three
+stored values, and it is the page a reviewer reads when Data Safety says nothing
+is collected.
 
 Play requires a privacy policy URL even when nothing is collected, and requires it
 again for the Families programme. `docs/privacy.html` in this repo was the earlier

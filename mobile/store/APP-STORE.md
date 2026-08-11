@@ -16,7 +16,7 @@ Everything below can be filled in the moment the account opens.
 | File | Connect field | Spec | Status |
 |---|---|---|---|
 | `screenshots-iphone/*.png` | iPhone 6.9" screenshots | 1320×2868, 6 of them | ✅ |
-| `screenshots-ipad/*.png` | iPad 13" screenshots | 2064×2752, 6 of them | ✅ |
+| `screenshots-ipad/*.png` | iPad 13" screenshots | 2752×2064 landscape, 6 of them | ✅ |
 | — | App icon | **not uploaded separately** — Connect takes the 1024px icon out of the build's asset catalogue | ✅ in build |
 
 Apple's sizes do not overlap Play's at all, so these are shot separately, from the
@@ -25,13 +25,17 @@ compositions are the same six ideas as the Play set: named landmarks on Earth,
 Valles Marineris in relief, Jupiter's bands, Saturn under the science layers, Io,
 and the sense-of-scale panel.
 
-**The iPad set is portrait on purpose.** Apple accepts either orientation, and
-landscape cannot be forced from the command line: an iPad app that supports Split
-View is required to support all four orientations, so a landscape-only
-`UISupportedInterfaceOrientations` is ignored, and the simulator letterboxes the
-interface into the portrait framebuffer instead of rotating it. Re-shoot in
-landscape on a real iPad if you prefer it — `xcrun simctl io <udid> screenshot`
-is the same one-liner on a device.
+**The iPad set is landscape**, which is how the game is meant to be held. Apple
+accepts either orientation. Getting landscape is the one part of this shoot that
+is not scriptable: an iPad app that supports Split View must support all four
+orientations, so a landscape-only `UISupportedInterfaceOrientations` is ignored
+(the trick that works on iPhone), and `simctl` cannot rotate a device. The
+simulator has to be turned in its own window by hand, after which
+`xcrun simctl io <udid> screenshot` still writes the device-native **portrait**
+framebuffer with the interface lying on its side — so each capture needs a
+`magick -rotate -90` to come out upright. That is the opposite direction from the
+iPhone landscape trick, where the app is letterboxed rather than the device
+turned.
 
 One screenshot set covers every localisation; there is only English.
 
@@ -276,6 +280,7 @@ Bump `MARKETING_VERSION` / `CURRENT_PROJECT_VERSION` in
 `ios/App/App.xcodeproj/project.pbxproj` for every upload; Connect rejects a
 repeated build number even for a rejected build.
 
-**Order of operations:** the privacy policy URL must resolve *before* you submit —
-it lives on the company site, on its own branch of `lion-force-web`, and Apple
-fetches it during review.
+**Order of operations:** the privacy policy URL must resolve *before* you submit,
+because Apple fetches it during review. It does — `https://www.lionforce.com.au/privacy/planet-explorer`
+was verified live on 10 August 2026, so the only thing left ahead of a submission
+is the organisation enrolment.

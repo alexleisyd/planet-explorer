@@ -276,6 +276,11 @@
     #instruments .ctl{gap:12px}
     .ovbtn{padding:11px 13px;font-size:11px;margin-top:7px}
     #hudBtn,#fsBtn{padding:11px 13px;font-size:11px}
+    /* No keyboard to press, so the "· key g" tails would name a control that is
+       not on the device — the same reason the hint copy switches to gestures
+       here. The shortcuts themselves stay bound: an iPad with a keyboard case
+       still answers g/n/x/h/f, it just is not told to. */
+    .ovbtn .k,#hudBtn .k,#fsBtn .k{display:none}
     #mLogBtn,#dataHead{padding:9px 0}
     #scaleClose,#mlogClose,#orreryClose{width:42px;height:42px;font-size:15px}
     .mapdot{padding:16px}
