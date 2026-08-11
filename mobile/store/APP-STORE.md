@@ -15,12 +15,27 @@ Everything below can be filled in the moment the account opens.
 
 | File | Connect field | Spec | Status |
 |---|---|---|---|
-| `screenshots-iphone/*.png` | iPhone 6.9" screenshots | 1320×2868, 6 of them | ✅ |
+| `screenshots-iphone/*.png` | iPhone 6.5" screenshots | 1284×2778, 6 of them | ✅ |
 | `screenshots-ipad/*.png` | iPad 13" screenshots | 2752×2064 landscape, 6 of them | ✅ |
 | — | App icon | **not uploaded separately** — Connect takes the 1024px icon out of the build's asset catalogue | ✅ in build |
 
+**The iPhone slot this listing has is the 6.5" one**, which takes 1242×2688 or
+1284×2778 and *refuses* 1320×2868 — the 6.9" size, which is what a current
+simulator hands you. None of the iPhones Xcode ships by default is 6.5" any more,
+so the set is shot on a simulator created for it:
+
+```
+xcrun simctl create "PE 14 Plus" \
+  com.apple.CoreSimulator.SimDeviceType.iPhone-14-Plus \
+  com.apple.CoreSimulator.SimRuntime.iOS-18-5
+```
+
+(iPhone 14 Plus, 12/13 Pro Max → 1284×2778; iPhone 11 Pro Max, XS Max →
+1242×2688.) If Connect ever offers the 6.9" slot instead, re-shoot on an iPhone
+17 Pro Max — same harness, same six compositions.
+
 Apple's sizes do not overlap Play's at all, so these are shot separately, from the
-real WKWebView on the iPhone 17 Pro Max and iPad Pro 13-inch simulators. The six
+real WKWebView on that simulator and the iPad Pro 13-inch one. The six
 compositions are the same six ideas as the Play set: named landmarks on Earth,
 Valles Marineris in relief, Jupiter's bands, Saturn under the science layers, Io,
 and the sense-of-scale panel.
