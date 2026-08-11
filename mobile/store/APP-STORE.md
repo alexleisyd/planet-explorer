@@ -197,9 +197,17 @@ permission, which is the same claim in a form a reviewer can verify.
 | Does the app use the Advertising Identifier (IDFA)? | **No** |
 | Does the app track users across apps or websites? | **No** — no `NSUserTrackingUsageDescription`, no ATT prompt |
 
-There is no privacy manifest (`PrivacyInfo.xcprivacy`) in the build and none is
-required: the app uses no [required-reason API](https://developer.apple.com/documentation/bundleresources/privacy_manifest_files)
-and contains no third-party SDK.
+The app target carries no privacy manifest of its own. The two frameworks in the
+bundle ship theirs — `Capacitor.framework` and `Cordova.framework` both declare
+`NSPrivacyTracking false` with empty `NSPrivacyCollectedDataTypes` and
+`NSPrivacyAccessedAPITypes` — and there is no third-party SDK. Worth quoting to a
+reviewer, since it is Apple's own format saying the same thing the answers do.
+
+The one thing that may still want an app-level `PrivacyInfo.xcprivacy` is the
+[required-reason API](https://developer.apple.com/documentation/bundleresources/privacy_manifest_files)
+category for `UserDefaults` (`NSPrivacyAccessedAPICategoryUserDefaults`, reason
+`CA92.1` — "access info from same app"), which is what the Preferences mirror
+writes. Add it if an upload ever comes back with an ITMS required-reason notice.
 
 **On-device storage, if the reviewer asks:** three values in the WebView's local
 storage, mirrored into `UserDefaults` so a storage-pressure eviction does not wipe
@@ -220,24 +228,107 @@ Every content question is **None / No**. Expected result: **4+**.
 | Simulated gambling · contests | None |
 | Unrestricted web access | **No** — there is no browser, no link out, no remote content |
 | Medical or treatment information | No |
-| Made for Kids | **DECIDE**, see below |
+| Made for Kids | **Yes** — submitted in the Kids Category |
 
-### Kids Category — **DECIDE**
+### Kids Category — decided: in
 
-The app qualifies cleanly: no ads, no purchases, no accounts, no analytics, no
-external links, no user-generated content, no network at all. Two ways to go:
+Version 1.0.0 went in under the Kids Category. The app qualifies cleanly: no ads,
+no purchases, no accounts, no analytics, no external links, no user-generated
+content, no network at all. Guideline 1.3 and the Kids rules therefore apply in
+review, a parental gate is required for anything that leaves the app (there is
+nothing, so this is free), and the privacy policy URL is mandatory rather than
+merely required. Keep this in step with Play's target-audience answer.
 
-- **Enter the Kids Category** (ages 5–8 or 9–11). It is a marketing asset and the
-  right shelf for the audience the copy is written for. Costs: Guideline 1.3 and
-  the Kids rules apply in review, a parental gate is required for anything that
-  leaves the app (there is nothing, so this is free), and the privacy policy URL
-  becomes mandatory rather than merely required.
-- **Ship 4+ without the Kids Category.** Fastest through review; can be added in
-  a later version. Recommended if you want the first submission to be about
-  finding real-device problems rather than passing an extra review track.
+### The Guideline 1.3 questionnaire — expect it, and answer it verbatim
 
-Nothing in the build changes either way. Keep this decision in step with Play's
-target-audience answer.
+A Kids Category submission draws an automated request for four answers before
+review proceeds. **This is a routine information request, not a rejection.** Paste
+the block below into the Connect message thread; every claim in it is checkable
+against the build, which is the point.
+
+```
+Thank you for the questions. Planet Explorer collects nothing, and the four
+answers are all "no". Details for each:
+
+1. THIRD-PARTY ANALYTICS — No.
+The app contains no analytics of any kind, first-party or third-party. There is
+no analytics SDK, no crash reporter, no attribution or measurement library, and
+no logging that leaves the device. The complete list of third-party code in the
+binary is: three.js (MIT licence, bundled as a local file), which draws 3D
+graphics on the device and has no network or storage code; and Capacitor (MIT
+licence), the open-source native runtime that hosts the app's WKWebView, together
+with two of its own first-party plugins — App (to handle the hardware Back
+button on Android) and Preferences (to store the three local values described in
+question 4). Both frameworks in the bundle ship Apple privacy manifests declaring
+NSPrivacyTracking false with empty NSPrivacyCollectedDataTypes and
+NSPrivacyAccessedAPITypes. There are no other SDKs.
+
+2. THIRD-PARTY ADVERTISING — No.
+The app contains no advertising, no ad SDK, no ad network integration, no
+promotional or cross-promotional content, and no links out of the app of any
+kind. It does not use the Advertising Identifier, contains no SKAdNetwork
+identifiers, and presents no App Tracking Transparency prompt because there is
+nothing to track. As there is no ad network involved, there is no ad network
+policy to link to.
+
+3. DATA SHARED WITH THIRD PARTIES — No. There is nothing to share, and no means
+of sharing it.
+The app makes no network requests whatsoever. It contains no networking code: no
+HTTP requests, no sockets, no WebSocket, no analytics beacons, no remote
+configuration, no downloaded code or content. Everything it displays is either in
+the app bundle or generated on the device at runtime — every planet surface is
+procedurally generated by the app as the player arrives at that world, which is
+what the brief "Scanning surface" progress bar shows on first arrival. It is not
+a download.
+
+Two ways to verify this quickly:
+- Put the device in Airplane Mode. The app is fully functional, with every
+  feature available, because it never needed a connection in the first place.
+- The Android build of the same game is shipping with no INTERNET permission
+  declared in its manifest at all — the operating system would refuse it a network
+  connection even if it asked for one. We mention it because it is the same
+  statement in a form that can be verified from outside the binary.
+
+No data is transmitted to us or to anyone else, so no data is stored on any
+server, ours or a third party's. We operate no server for this app.
+
+4. ANY OTHER COLLECTION OR USE OF USER OR DEVICE DATA — No collection.
+The app requests no permission of any kind (there is not a single usage-
+description key in its Info.plist), accesses no device identifier, no contacts,
+no location, no camera, no microphone, no photos, no health data and no
+advertising identifier. It has no accounts, no sign-in, no user-generated
+content, no chat or messaging, no social features, no in-app purchases and no
+links to external websites.
+
+Three values are saved on the device, for gameplay only, in the app's own
+storage (the WebView's local storage, mirrored into UserDefaults so that iOS
+reclaiming website data under storage pressure does not erase a child's
+progress):
+- which of the 24 worlds the player has surveyed, so the twelve mission badges
+  persist between sessions;
+- two optional numbers a player may type into the "You, here" panel — a weight
+  and an age — used only to calculate what they would weigh and how high they
+  could jump on the world currently on screen, from that world's real surface
+  gravity. Both are optional, the app is fully playable without them, and they
+  are ordinary numbers rather than an identity: nothing asks for a name, an
+  email address or a birth date;
+- whether one panel of the heads-up display is folded open or closed.
+
+None of the three is transmitted anywhere, none is used for any purpose beyond
+drawing the next frame of the game, and all three are removed when the app is
+deleted. The privacy policy states the same:
+https://www.lionforce.com.au/privacy/planet-explorer
+
+Please let us know if you would like any further detail.
+```
+
+The reply's factual claims and where each is verifiable, so a future version does
+not quietly break one: no network code (`index.html` contains no `fetch`,
+`XMLHttpRequest`, `WebSocket`, `sendBeacon` or `EventSource`, and the only URL in
+the file is the SVG namespace); no permissions (no `*UsageDescription` key in
+`Info.plist`, and no `uses-permission` in `AndroidManifest.xml`); dependency list
+(`mobile/package.json` and `ios/App/CapApp-SPM/Package.swift`); the three stored
+keys (`pe-surveyed`, `pe-pilot`, `pe-datapanel`).
 
 ---
 
